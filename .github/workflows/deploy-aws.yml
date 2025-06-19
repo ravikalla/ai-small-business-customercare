@@ -36,11 +36,27 @@ jobs:
         curl http://localhost:3000/health || exit 1
         pkill -f "node.*src/index.js"
 
-    - name: Test EC2 connectivity
+    - name: Pre-deployment Checks
       run: |
-        echo "Testing connectivity to EC2 instance..."
-        # Test if host is reachable (this will show in logs for debugging)
-        timeout 10 bash -c "cat < /dev/null > /dev/tcp/${{ secrets.EC2_HOST }}/22" && echo "Port 22 is open" || echo "Cannot connect to port 22"
+        echo "🔍 Pre-deployment checks..."
+        echo "Target Host: ${{ secrets.EC2_HOST }}"
+        echo "Username: ${{ secrets.EC2_USERNAME }}"
+        echo "Port: ${{ secrets.EC2_SSH_PORT }}"
+        
+        echo "Testing network connectivity..."
+        if timeout 10 bash -c "cat < /dev/null > /dev/tcp/${{ secrets.EC2_HOST }}/22" 2>/dev/null; then
+          echo "✅ Port 22 is reachable"
+        else
+          echo "❌ Cannot connect to port 22 on ${{ secrets.EC2_HOST }}"
+          echo ""
+          echo "🚨 DEPLOYMENT WILL FAIL - Common fixes:"
+          echo "1. Check EC2 Security Group allows SSH (port 22) from 0.0.0.0/0"
+          echo "2. Verify EC2 instance is running"
+          echo "3. Confirm EC2_HOST secret contains PUBLIC IP address"
+          echo "4. Check Network ACLs if security group is correct"
+          echo ""
+          echo "See troubleshoot-deployment.md for detailed instructions"
+        fi
       continue-on-error: true
 
     - name: Deploy to EC2
