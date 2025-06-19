@@ -33,16 +33,25 @@ cp .env.example .env
 Edit `.env` with your API keys:
 - `OPENAI_API_KEY`: Your OpenAI API key
 - `PINECONE_API_KEY`: Your Pinecone API key
-- `PINECONE_ENVIRONMENT`: Your Pinecone environment
+- `PINECONE_ENVIRONMENT`: Your Pinecone environment (e.g., `us-east-1`)
 - `PINECONE_INDEX_NAME`: Your Pinecone index name
+- `NODE_ENV`: Set to `production` for production deployment
 
 3. Create Pinecone index:
 - Create an index with dimension 1536 (for OpenAI embeddings)
 - Use cosine similarity metric
+- Choose appropriate cloud and region
 
 4. Start the application:
+
+**Development:**
 ```bash
 npm run dev
+```
+
+**Production:**
+```bash
+NODE_ENV=production npm start
 ```
 
 ## Usage
@@ -63,9 +72,18 @@ curl -X POST http://localhost:3000/api/knowledge/search \
 ```
 
 ### WhatsApp Integration
+
+#### For Business Owners:
 1. Scan QR code when starting the app
-2. Customers can query using: `!business [businessId] [question]`
-3. Example: `!business restaurant123 What are your opening hours?`
+2. Register your business: `!register [Business Name]`
+3. Add knowledge: `!add [text content]`
+4. Upload documents via WhatsApp attachments (PDF, TXT)
+5. Manage knowledge: `!list`, `!delete [id]`, `!help`
+
+#### For Customers:
+1. Query using: `!business [businessId] [question]`
+2. Example: `!business restaurant123 What are your opening hours?`
+3. Get AI-powered responses from business knowledge base
 
 ## API Endpoints
 

@@ -1,0 +1,39 @@
+{
+  "kb_mytestre_9430_1750275180309_y7d": {
+    "id": "kb_mytestre_9430_1750275180309_y7d",
+    "businessId": "mytestre_9430",
+    "businessName": "MyTestRestaurant",
+    "type": "text",
+    "content": "We are open Monday to Friday 9AM-6PM, closed weekends",
+    "metadata": {
+      "addedAt": "2025-06-18T19:33:00.309Z",
+      "source": "whatsapp"
+    }
+  },
+  "kb_mytestre_9430_1750275326425_sxk": {
+    "id": "kb_mytestre_9430_1750275326425_sxk",
+    "businessId": "mytestre_9430",
+    "businessName": "MyTestRestaurant",
+    "type": "text",
+    "content": "We are open Monday to Friday 9AM-6PM, closed weekends",
+    "metadata": {
+      "addedAt": "2025-06-18T19:35:26.425Z",
+      "source": "whatsapp"
+    }
+  },
+  "kb_mytestre_9430_1750275684823_o21": {
+    "id": "kb_mytestre_9430_1750275684823_o21",
+    "businessId": "mytestre_9430",
+    "businessName": "MyTestRestaurant",
+    "type": "document",
+    "filename": "test-document.txt",
+    "fileType": ".txt",
+    "content": "Sample Restaurant Information\n\nBusiness Hours:\nMonday - Friday: 9:00 AM - 10:00 PM\nSaturday: 10:00 AM - 11:00 PM  \nSunday: 11:00 AM - 9:00 PM\n\nMenu Highlights:\n- Paneer Tikka Pizza on weekends (Saturday and Sunday)\n- Wood-fired Neapolitan Pizza\n- Fresh Pasta made daily\n- Organic salads with local ingredients\n- Craft cocktails and wine selection\n\nContact Information:\nPhone: (555) 555-5555\nEmail: ravi2523096+pizza@gmail.com\nAddress: 123 Main Street, Food City\n\nSpecial Features:\n- Outdoor patio sea...",
+    "metadata": {
+      "originalSize": 1016,
+      "addedAt": "2025-06-18T19:41:24.823Z",
+      "source": "whatsapp",
+      "fullContentStored": true
+    }
+  }
+}

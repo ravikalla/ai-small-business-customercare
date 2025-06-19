@@ -1,0 +1,97 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: # Allow manual deployment
+
+env:
+  NODE_VERSION: '18'
+  APP_DIR: '/var/www/sbc-system'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests
+      run: |
+        # Create a simple test to verify the app starts
+        timeout 30s npm start &
+        sleep 10
+        curl http://localhost:3000/health || exit 1
+        pkill -f "node.*src/index.js"
+
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        port: ${{ secrets.EC2_SSH_PORT }}
+        script: |
+          # Navigate to application directory
+          cd ${{ env.APP_DIR }}
+          
+          # Pull latest changes
+          echo "📥 Pulling latest changes from GitHub..."
+          git pull origin main
+          
+          # Install/update dependencies
+          echo "📦 Installing dependencies..."
+          npm install --production
+          
+          # Update environment variables if needed
+          if [ ! -f .env ]; then
+            echo "⚠️ .env file not found. Creating from template..."
+            cp .env.example .env
+            echo "🔐 Please update .env file with your API keys"
+          fi
+          
+          # Restart application with PM2
+          echo "🔄 Restarting application..."
+          pm2 restart sbc-system || pm2 start ecosystem.config.js --env production
+          
+          # Save PM2 configuration
+          pm2 save
+          
+          # Check application health
+          echo "🏥 Checking application health..."
+          sleep 5
+          if curl -f http://localhost:3000/health > /dev/null 2>&1; then
+            echo "✅ Application is healthy"
+            pm2 status
+          else
+            echo "❌ Health check failed"
+            pm2 logs sbc-system --lines 20
+            exit 1
+          fi
+          
+          # Restart Nginx if needed
+          echo "🌐 Checking Nginx..."
+          sudo nginx -t && sudo systemctl reload nginx
+          
+          echo "🎉 Deployment completed successfully!"
+
+    - name: Notify deployment status
+      if: always()
+      run: |
+        if [ ${{ job.status }} == 'success' ]; then
+          echo "✅ Deployment to AWS EC2 completed successfully"
+        else
+          echo "❌ Deployment to AWS EC2 failed"
+        fi

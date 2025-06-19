@@ -5,3 +5,4 @@ uploads/
 .wwebjs_cache/
 *.log
 .DS_Store
+sbc-system-key.pem

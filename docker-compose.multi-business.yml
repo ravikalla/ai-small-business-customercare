@@ -1,0 +1,130 @@
+# Multi-Business Deployment Configuration
+# Author: Ravi Kalla <ravi2523096+sbc@gmail.com>
+
+version: '3.8'
+
+services:
+  # Business Owner 1 - Pizza Palace
+  sbc-pizza:
+    build: .
+    container_name: sbc-pizza-palace
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - BUSINESS_OWNER_PHONE=+1234567890
+      - BUSINESS_NAME=Pizza Palace
+      - WHATSAPP_SESSION_ID=pizza_palace
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT}
+      - PINECONE_INDEX_NAME=${PINECONE_INDEX_NAME}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+    volumes:
+      - pizza_sessions:/app/.wwebjs_auth
+      - pizza_temp:/app/temp
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Business Owner 2 - Coffee Shop
+  sbc-coffee:
+    build: .
+    container_name: sbc-coffee-shop
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - BUSINESS_OWNER_PHONE=+1987654321
+      - BUSINESS_NAME=Coffee Corner
+      - WHATSAPP_SESSION_ID=coffee_corner
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT}
+      - PINECONE_INDEX_NAME=${PINECONE_INDEX_NAME}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+    volumes:
+      - coffee_sessions:/app/.wwebjs_auth
+      - coffee_temp:/app/temp
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Business Owner 3 - Restaurant
+  sbc-restaurant:
+    build: .
+    container_name: sbc-restaurant
+    ports:
+      - "3003:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - BUSINESS_OWNER_PHONE=+1555666777
+      - BUSINESS_NAME=Fine Dining Restaurant
+      - WHATSAPP_SESSION_ID=fine_dining
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT}
+      - PINECONE_INDEX_NAME=${PINECONE_INDEX_NAME}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+    volumes:
+      - restaurant_sessions:/app/.wwebjs_auth
+      - restaurant_temp:/app/temp
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Load Balancer for Customer Queries
+  nginx:
+    image: nginx:alpine
+    container_name: sbc-loadbalancer
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - sbc-pizza
+      - sbc-coffee
+      - sbc-restaurant
+    restart: unless-stopped
+
+  # Monitoring Dashboard
+  monitoring:
+    image: grafana/grafana:latest
+    container_name: sbc-monitoring
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      - monitoring_data:/var/lib/grafana
+    restart: unless-stopped
+
+volumes:
+  pizza_sessions:
+  pizza_temp:
+  coffee_sessions:
+  coffee_temp:
+  restaurant_sessions:
+  restaurant_temp:
+  monitoring_data:
+
+networks:
+  default:
+    name: sbc-network
