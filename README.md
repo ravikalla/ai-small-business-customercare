@@ -96,5 +96,31 @@ curl -X POST http://localhost:3000/api/knowledge/search \
 - **Express.js** - Web framework
 - **Pinecone** - Vector database for document storage
 - **OpenAI** - Embeddings and chat completion
-- **WhatsApp Web.js** - WhatsApp integration
-- **Multer** - File upload handling
+- **Twilio WhatsApp Business API** - Multi-business WhatsApp integration
+- **Supabase PostgreSQL** - Data persistence and business management
+- **PM2** - Process management for production
+- **Nginx** - Reverse proxy with rate limiting
+- **GitHub Actions** - Automated CI/CD pipeline
+
+## Deployment
+
+### AWS EC2 Deployment
+Automated deployment to AWS EC2 with GitHub Actions:
+
+1. **Configure GitHub Secrets:**
+   - `EC2_HOST` - Your EC2 public IP
+   - `EC2_USERNAME` - `ubuntu`
+   - `EC2_SSH_KEY` - Your .pem file contents
+   - `EC2_SSH_PORT` - `22`
+
+2. **Deploy:**
+   - Push to main branch triggers automatic deployment
+   - Manual deployment available in Actions tab
+   - Health checks and rollback on failure
+
+3. **Monitor:**
+   - PM2 dashboard: `pm2 monit`
+   - Application logs: `pm2 logs sbc-system`
+   - Nginx logs: `sudo tail -f /var/log/nginx/error.log`
+
+For detailed setup instructions, see [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md)
