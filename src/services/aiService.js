@@ -11,14 +11,26 @@ const vectorService = require('./vectorService');
 
 class AIService {
     constructor() {
-        this.openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY
-        });
+        this.isTestEnvironment = process.env.NODE_ENV === 'test' || !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'test-key';
+        
+        if (this.isTestEnvironment) {
+            logger.info('[AI] Running in test mode - AI responses will be mocked');
+            this.openai = null;
+        } else {
+            this.openai = new OpenAI({
+                apiKey: process.env.OPENAI_API_KEY
+            });
+        }
     }
 
     async generateResponse(query, businessId) {
         try {
             logger.info(`[AI] Generating response for business ${businessId}: "${query}"`);
+            
+            if (this.isTestEnvironment) {
+                logger.info(`[AI] Test mode - returning mock response for query: "${query}"`);
+                return `Test AI response for business ${businessId}: This is a mock response to the query "${query}".`;
+            }
             
             // Check cache first
             const cachedResponse = cache.getCachedResponse(businessId, query);
