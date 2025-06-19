@@ -36,6 +36,13 @@ jobs:
         curl http://localhost:3000/health || exit 1
         pkill -f "node.*src/index.js"
 
+    - name: Test EC2 connectivity
+      run: |
+        echo "Testing connectivity to EC2 instance..."
+        # Test if host is reachable (this will show in logs for debugging)
+        timeout 10 bash -c "cat < /dev/null > /dev/tcp/${{ secrets.EC2_HOST }}/22" && echo "Port 22 is open" || echo "Cannot connect to port 22"
+      continue-on-error: true
+
     - name: Deploy to EC2
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -43,6 +50,9 @@ jobs:
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
         port: ${{ secrets.EC2_SSH_PORT }}
+        timeout: 60s
+        command_timeout: 15m
+        debug: true
         script: |
           # Navigate to application directory
           cd ${{ env.APP_DIR }}
