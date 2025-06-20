@@ -270,6 +270,14 @@ app.get('/api/twilio/status', async (req, res) => {
     }
 });
 
+// Simple test endpoint
+app.get('/test-logs', (req, res) => {
+    res.json({ 
+        message: 'Log endpoint is working',
+        timestamp: new Date().toISOString()
+    });
+});
+
 // Log monitoring endpoints
 app.get('/api/logs', async (req, res) => {
     try {
@@ -367,170 +375,97 @@ app.get('/api/metrics', async (req, res) => {
     }
 });
 
-// Log viewer HTML page
+// Simple log viewer page
 app.get('/logs', (req, res) => {
-    const html = `
+    res.send(`
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SBC System - Log Viewer</title>
     <style>
-        body { font-family: 'Courier New', monospace; margin: 0; padding: 20px; background: #1a1a1a; color: #fff; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .controls { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
-        .controls select, .controls input, .controls button { padding: 8px; border-radius: 4px; border: 1px solid #444; background: #333; color: #fff; }
-        .controls button { background: #007acc; cursor: pointer; }
-        .controls button:hover { background: #005a9e; }
-        .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
-        .metric { background: #333; padding: 10px; border-radius: 4px; text-align: center; }
-        .metric-value { font-size: 1.2em; font-weight: bold; color: #4CAF50; }
-        .logs-container { background: #222; border: 1px solid #444; border-radius: 4px; height: 60vh; overflow-y: auto; padding: 10px; }
-        .log-line { margin: 2px 0; padding: 4px; border-radius: 2px; }
-        .log-error { background: rgba(244, 67, 54, 0.2); }
-        .log-warn { background: rgba(255, 193, 7, 0.2); }
-        .log-info { background: rgba(33, 150, 243, 0.2); }
-        .log-success { background: rgba(76, 175, 80, 0.2); }
-        .auto-refresh { color: #4CAF50; }
-        .status-online { color: #4CAF50; }
-        .status-stopped { color: #f44336; }
+        body { font-family: monospace; background: #1a1a1a; color: #fff; margin: 20px; }
+        .header { margin-bottom: 20px; }
+        .controls { margin-bottom: 20px; }
+        .controls button { padding: 10px; margin-right: 10px; background: #007acc; color: white; border: none; cursor: pointer; }
+        .logs { background: #222; padding: 15px; height: 70vh; overflow-y: auto; border: 1px solid #444; }
+        .log-line { margin: 3px 0; padding: 3px; }
+        .error { background: rgba(255,0,0,0.2); }
+        .warn { background: rgba(255,255,0,0.2); }
+        .info { background: rgba(0,255,255,0.2); }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>🔍 SBC System Log Viewer</h1>
-        <div id="lastUpdate">Last updated: Never</div>
+        <h1>🔍 SBC System Logs</h1>
+        <div id="status">Status: Loading...</div>
     </div>
-    
-    <div id="metrics" class="metrics"></div>
     
     <div class="controls">
-        <label>Lines: <select id="lines">
-            <option value="50">50</option>
-            <option value="100" selected>100</option>
-            <option value="200">200</option>
-            <option value="500">500</option>
-        </select></label>
-        
-        <label>Level: <select id="level">
-            <option value="all">All</option>
-            <option value="error">Errors</option>
-            <option value="warn">Warnings</option>
-            <option value="info">Info</option>
-        </select></label>
-        
-        <label>Filter: <input type="text" id="filter" placeholder="Search logs..." /></label>
-        
-        <button onclick="refreshLogs()">Refresh</button>
-        <button onclick="toggleAutoRefresh()" id="autoRefreshBtn">Auto Refresh: OFF</button>
-        <button onclick="clearLogs()">Clear</button>
+        <button onclick="loadLogs()">Refresh Logs</button>
+        <button onclick="toggleAutoRefresh()" id="autoBtn">Auto Refresh: OFF</button>
+        <button onclick="clearDisplay()">Clear</button>
     </div>
     
-    <div id="logs" class="logs-container"></div>
+    <div id="logs" class="logs">Loading logs...</div>
     
     <script>
-        let autoRefreshInterval = null;
-        let isAutoRefresh = false;
+        let autoRefresh = false;
+        let interval;
         
-        async function fetchMetrics() {
+        async function loadLogs() {
             try {
-                const response = await fetch('/api/metrics');
+                document.getElementById('status').textContent = 'Status: Loading...';
+                const response = await fetch('/api/logs?lines=100');
                 const data = await response.json();
                 
                 if (data.success) {
-                    const metrics = data.metrics;
-                    document.getElementById('metrics').innerHTML = \`
-                        <div class="metric">
-                            <div>Status</div>
-                            <div class="metric-value status-\${metrics.status}">\${metrics.status.toUpperCase()}</div>
-                        </div>
-                        <div class="metric">
-                            <div>Memory</div>
-                            <div class="metric-value">\${metrics.memory}</div>
-                        </div>
-                        <div class="metric">
-                            <div>CPU</div>
-                            <div class="metric-value">\${metrics.cpu}</div>
-                        </div>
-                        <div class="metric">
-                            <div>Restarts</div>
-                            <div class="metric-value">\${metrics.restarts}</div>
-                        </div>
-                        <div class="metric">
-                            <div>PID</div>
-                            <div class="metric-value">\${metrics.pid}</div>
-                        </div>
-                    \`;
-                }
-            } catch (error) {
-                console.error('Failed to fetch metrics:', error);
-            }
-        }
-        
-        async function refreshLogs() {
-            const lines = document.getElementById('lines').value;
-            const level = document.getElementById('level').value;
-            const filter = document.getElementById('filter').value;
-            
-            try {
-                const params = new URLSearchParams({ lines, level, filter });
-                const response = await fetch(\`/api/logs?\${params}\`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    const logsContainer = document.getElementById('logs');
-                    logsContainer.innerHTML = data.logs.map(log => {
+                    const logsDiv = document.getElementById('logs');
+                    logsDiv.innerHTML = data.logs.map(line => {
                         let className = 'log-line';
-                        if (log.includes('ERROR')) className += ' log-error';
-                        else if (log.includes('WARN')) className += ' log-warn';
-                        else if (log.includes('INFO')) className += ' log-info';
-                        else if (log.includes('SUCCESS')) className += ' log-success';
+                        if (line.includes('ERROR')) className += ' error';
+                        else if (line.includes('WARN')) className += ' warn';
+                        else if (line.includes('INFO')) className += ' info';
                         
-                        return \`<div class="\${className}">\${log}</div>\`;
+                        return '<div class="' + className + '">' + line + '</div>';
                     }).join('');
                     
-                    logsContainer.scrollTop = logsContainer.scrollHeight;
-                    document.getElementById('lastUpdate').textContent = \`Last updated: \${new Date().toLocaleTimeString()}\`;
+                    logsDiv.scrollTop = logsDiv.scrollHeight;
+                    document.getElementById('status').textContent = 'Status: Updated at ' + new Date().toLocaleTimeString();
+                } else {
+                    document.getElementById('logs').innerHTML = 'Error loading logs: ' + data.error;
+                    document.getElementById('status').textContent = 'Status: Error';
                 }
             } catch (error) {
-                console.error('Failed to refresh logs:', error);
+                document.getElementById('logs').innerHTML = 'Failed to load logs: ' + error.message;
+                document.getElementById('status').textContent = 'Status: Connection Error';
             }
         }
         
         function toggleAutoRefresh() {
-            isAutoRefresh = !isAutoRefresh;
-            const btn = document.getElementById('autoRefreshBtn');
+            autoRefresh = !autoRefresh;
+            const btn = document.getElementById('autoBtn');
             
-            if (isAutoRefresh) {
+            if (autoRefresh) {
                 btn.textContent = 'Auto Refresh: ON';
-                btn.className = 'auto-refresh';
-                autoRefreshInterval = setInterval(() => {
-                    refreshLogs();
-                    fetchMetrics();
-                }, 3000);
+                btn.style.background = '#4CAF50';
+                interval = setInterval(loadLogs, 5000);
             } else {
                 btn.textContent = 'Auto Refresh: OFF';
-                btn.className = '';
-                clearInterval(autoRefreshInterval);
+                btn.style.background = '#007acc';
+                clearInterval(interval);
             }
         }
         
-        function clearLogs() {
+        function clearDisplay() {
             document.getElementById('logs').innerHTML = '';
         }
         
-        // Initial load
-        refreshLogs();
-        fetchMetrics();
-        
-        // Refresh metrics every 10 seconds
-        setInterval(fetchMetrics, 10000);
+        // Load logs on page load
+        loadLogs();
     </script>
 </body>
 </html>
-    `;
-    res.send(html);
+    `);
 });
 
 // Initialize services
