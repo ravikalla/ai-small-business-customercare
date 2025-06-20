@@ -88,6 +88,9 @@ jobs:
             echo "🔐 Please update .env file with your API keys"
           fi
           
+          # Set deployment timestamp
+          echo "DEPLOYMENT_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .env
+          
           # Restart application with PM2
           echo "🔄 Restarting application..."
           pm2 restart sbc-system || pm2 start ecosystem.config.js --env production

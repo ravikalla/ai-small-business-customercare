@@ -26,7 +26,19 @@ app.use('/api/knowledge', knowledgeBaseModule);
 app.use('/webhooks', webhooksModule);
 
 app.get('/', (req, res) => {
-    res.json({ message: 'Small Business Chatbot API is running!' });
+    const packageJson = require('../package.json');
+    const deploymentTime = process.env.DEPLOYMENT_TIME || new Date().toISOString();
+    
+    res.json({ 
+        message: 'Small Business Chatbot API is running!',
+        version: packageJson.version,
+        name: packageJson.name,
+        author: packageJson.author,
+        deploymentTime: deploymentTime,
+        uptime: Math.round(process.uptime()),
+        nodeVersion: process.version,
+        environment: process.env.NODE_ENV || 'development'
+    });
 });
 
 app.get('/health', async (req, res) => {

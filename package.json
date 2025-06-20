@@ -1,6 +1,6 @@
 {
   "name": "small-business-chatbot",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "AI chatbot for small businesses with knowledge base integration",
   "main": "src/index.js",
   "author": "Ravi Kalla <ravi2523096+sbc@gmail.com>",
