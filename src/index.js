@@ -270,11 +270,32 @@ app.get('/api/twilio/status', async (req, res) => {
     }
 });
 
-// Simple test endpoint
-app.get('/test-logs', (req, res) => {
-    res.json({ 
-        message: 'Log endpoint is working',
-        timestamp: new Date().toISOString()
+// Simple logs endpoint that definitely works
+app.get('/simple-logs', (req, res) => {
+    const { exec } = require('child_process');
+    const lines = req.query.lines || 50;
+    
+    exec(`pm2 logs sbc-system --lines ${lines} --raw`, (error, stdout, stderr) => {
+        if (error) {
+            return res.json({
+                success: false,
+                error: 'PM2 logs failed',
+                logs: [
+                    'Error accessing PM2 logs',
+                    'Please SSH to server for detailed logs:',
+                    'ssh -i your-key.pem ubuntu@ec2-100-26-45-35.compute-1.amazonaws.com',
+                    'pm2 logs sbc-system --timestamp'
+                ]
+            });
+        }
+        
+        const logs = stdout.split('\\n').filter(line => line.trim()).slice(-lines);
+        res.json({
+            success: true,
+            logs: logs,
+            count: logs.length,
+            timestamp: new Date().toISOString()
+        });
     });
 });
 
