@@ -73,9 +73,19 @@ jobs:
           # Navigate to application directory
           cd ${{ env.APP_DIR }}
           
-          # Pull latest changes
+          # Check current status
+          echo "📋 Current git status:"
+          git status --short
+          
+          # Pull latest changes (force update)
           echo "📥 Pulling latest changes from GitHub..."
-          git pull origin main
+          git fetch origin
+          git reset --hard origin/main
+          git clean -fd
+          
+          # Verify update
+          echo "✅ Updated to commit: $(git rev-parse --short HEAD)"
+          echo "📦 Package version: $(grep version package.json)"
           
           # Install/update dependencies
           echo "📦 Installing dependencies..."
