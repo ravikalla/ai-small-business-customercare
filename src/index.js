@@ -87,10 +87,13 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
             // Handle other commands and customer queries
             logger.info(`[WEBHOOK] Processing non-registration message: "${Body}"`);
             
-            // Check if it's a customer query first (takes priority)
+            // Check what type of command this is
+            const senderBusiness = await businessService.getBusinessByOwner(phoneNumber);
+            
             if (Body.toLowerCase().startsWith('!business ')) {
-                logger.info(`[WEBHOOK] Customer query detected`);
-                // Handle customer query
+                // This is always a customer query, regardless of who sends it
+                logger.info(`[WEBHOOK] Customer query detected from ${senderBusiness ? 'business owner' : 'customer'}`);
+                
                 const parts = Body.split(' ');
                 if (parts.length >= 3) {
                     const businessId = parts[1];
@@ -105,11 +108,9 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
                 } else {
                     await twilioWhatsAppService.sendMessage(phoneNumber, 'Please provide a valid query. Format: !business [ID] [your question]');
                 }
-            } else {
-                // Check if it's a business owner command
-                const business = await businessService.getBusinessByOwner(phoneNumber);
-                if (business && Body.startsWith('!')) {
-                logger.info(`[WEBHOOK] Business owner command from ${business.businessName}`);
+            } else if (senderBusiness && Body.startsWith('!')) {
+                // This is a business owner management command
+                logger.info(`[WEBHOOK] Business owner command from ${senderBusiness.businessName}`);
                 
                 // Parse the command
                 const commandMatch = Body.match(/^!(\w+)(?:\s+(.*))?$/i);
@@ -128,15 +129,15 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
                         if (!args.trim()) {
                             await twilioWhatsAppService.sendMessage(phoneNumber, 'Please provide content. Format: !add [your knowledge text]');
                         } else {
-                            logger.info(`[WEBHOOK] Adding knowledge for ${business.businessName}`);
+                            logger.info(`[WEBHOOK] Adding knowledge for ${senderBusiness.businessName}`);
                             const result = await knowledgeService.addTextKnowledge(
-                                business.businessId,
-                                business.businessName,
+                                senderBusiness.businessId,
+                                senderBusiness.businessName,
                                 args.trim()
                             );
                             
                             if (result.success) {
-                                await businessService.updateKnowledgeCount(business.ownerPhone);
+                                await businessService.updateKnowledgeCount(senderBusiness.ownerPhone);
                                 await twilioWhatsAppService.sendMessage(phoneNumber, `✅ ${result.message}\n"${args.substring(0, 100)}${args.length > 100 ? '...' : ''}"`);
                             } else {
                                 await twilioWhatsAppService.sendMessage(phoneNumber, `❌ ${result.message}`);
@@ -145,14 +146,14 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
                         break;
                         
                     case 'list':
-                        logger.info(`[WEBHOOK] Listing knowledge for ${business.businessName}`);
-                        const entries = await knowledgeService.getBusinessKnowledge(business.businessId);
-                        const stats = await knowledgeService.getKnowledgeStats(business.businessId);
+                        logger.info(`[WEBHOOK] Listing knowledge for ${senderBusiness.businessName}`);
+                        const entries = await knowledgeService.getBusinessKnowledge(senderBusiness.businessId);
+                        const stats = await knowledgeService.getKnowledgeStats(senderBusiness.businessId);
                         
                         if (entries.length === 0) {
-                            await twilioWhatsAppService.sendMessage(phoneNumber, `📚 Your Knowledge Base (${business.businessName}):\n\nNo entries yet. Use !add [text] or send documents to get started!`);
+                            await twilioWhatsAppService.sendMessage(phoneNumber, `📚 Your Knowledge Base (${senderBusiness.businessName}):\n\nNo entries yet. Use !add [text] or send documents to get started!`);
                         } else {
-                            let response = `📚 Your Knowledge Base (${business.businessName}):\n\n`;
+                            let response = `📚 Your Knowledge Base (${senderBusiness.businessName}):\n\n`;
                             entries.slice(0, 10).forEach(entry => {
                                 const date = new Date(entry.addedAt).toLocaleDateString();
                                 response += `${entry.id}: ${entry.preview} (${entry.type}) - ${date}\n`;
@@ -168,7 +169,7 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
                         break;
                         
                     case 'help':
-                        const help = `🔧 Available Commands for ${business.businessName}:
+                        const help = `🔧 Available Commands for ${senderBusiness.businessName}:
 
 📝 *Knowledge Management:*
 • !add [text] - Add text knowledge
@@ -180,7 +181,7 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
 • !help - Show this help message
 
 💡 *Tips:*
-- Customers can query your business using: !business ${business.businessId} [question]
+- Customers can query your business using: !business ${senderBusiness.businessId} [question]
 - All uploaded content is processed and made searchable`;
                         await twilioWhatsAppService.sendMessage(phoneNumber, help);
                         break;
@@ -189,9 +190,9 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
                         if (!args.trim()) {
                             await twilioWhatsAppService.sendMessage(phoneNumber, 'Please provide a knowledge ID. Format: !delete [knowledge-id]');
                         } else {
-                            const result = await knowledgeService.deleteKnowledge(business.businessId, args.trim());
+                            const result = await knowledgeService.deleteKnowledge(senderBusiness.businessId, args.trim());
                             if (result.success) {
-                                await businessService.updateKnowledgeCount(business.ownerPhone, -1);
+                                await businessService.updateKnowledgeCount(senderBusiness.ownerPhone, -1);
                                 await twilioWhatsAppService.sendMessage(phoneNumber, `✅ ${result.message}`);
                             } else {
                                 await twilioWhatsAppService.sendMessage(phoneNumber, `❌ ${result.message}`);
