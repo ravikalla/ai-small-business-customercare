@@ -89,8 +89,98 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
             const business = await businessService.getBusinessByOwner(phoneNumber);
             if (business && Body.startsWith('!')) {
                 logger.info(`[WEBHOOK] Business owner command from ${business.businessName}`);
-                // Handle business owner commands here
-                await twilioWhatsAppService.sendMessage(phoneNumber, 'Command received. Processing...');
+                
+                // Parse the command
+                const commandMatch = Body.match(/^!(\w+)(?:\s+(.*))?$/i);
+                if (!commandMatch) {
+                    await twilioWhatsAppService.sendMessage(phoneNumber, 'Invalid command format. Use !help for available commands.');
+                    return res.status(200).send('OK');
+                }
+                
+                const command = commandMatch[1].toLowerCase();
+                const args = commandMatch[2] || '';
+                
+                logger.info(`[WEBHOOK] Processing business owner command: ${command}`);
+                
+                switch (command) {
+                    case 'add':
+                        if (!args.trim()) {
+                            await twilioWhatsAppService.sendMessage(phoneNumber, 'Please provide content. Format: !add [your knowledge text]');
+                        } else {
+                            logger.info(`[WEBHOOK] Adding knowledge for ${business.businessName}`);
+                            const result = await knowledgeService.addTextKnowledge(
+                                business.businessId,
+                                business.businessName,
+                                args.trim()
+                            );
+                            
+                            if (result.success) {
+                                await businessService.updateKnowledgeCount(business.ownerPhone);
+                                await twilioWhatsAppService.sendMessage(phoneNumber, `✅ ${result.message}\n"${args.substring(0, 100)}${args.length > 100 ? '...' : ''}"`);
+                            } else {
+                                await twilioWhatsAppService.sendMessage(phoneNumber, `❌ ${result.message}`);
+                            }
+                        }
+                        break;
+                        
+                    case 'list':
+                        logger.info(`[WEBHOOK] Listing knowledge for ${business.businessName}`);
+                        const entries = await knowledgeService.getBusinessKnowledge(business.businessId);
+                        const stats = await knowledgeService.getKnowledgeStats(business.businessId);
+                        
+                        if (entries.length === 0) {
+                            await twilioWhatsAppService.sendMessage(phoneNumber, `📚 Your Knowledge Base (${business.businessName}):\n\nNo entries yet. Use !add [text] or send documents to get started!`);
+                        } else {
+                            let response = `📚 Your Knowledge Base (${business.businessName}):\n\n`;
+                            entries.slice(0, 10).forEach(entry => {
+                                const date = new Date(entry.addedAt).toLocaleDateString();
+                                response += `${entry.id}: ${entry.preview} (${entry.type}) - ${date}\n`;
+                            });
+                            
+                            if (entries.length > 10) {
+                                response += `\n... and ${entries.length - 10} more entries`;
+                            }
+                            
+                            response += `\n📊 Total: ${stats.total} entries (${stats.text} text, ${stats.documents} documents)`;
+                            await twilioWhatsAppService.sendMessage(phoneNumber, response);
+                        }
+                        break;
+                        
+                    case 'help':
+                        const help = `🔧 Available Commands for ${business.businessName}:
+
+📝 *Knowledge Management:*
+• !add [text] - Add text knowledge
+• Send PDF/TXT files - Upload documents
+• !list - View your knowledge base
+• !delete [id] - Remove knowledge entry
+
+📊 *Information:*
+• !help - Show this help message
+
+💡 *Tips:*
+- Customers can query your business using: !business ${business.businessId} [question]
+- All uploaded content is processed and made searchable`;
+                        await twilioWhatsAppService.sendMessage(phoneNumber, help);
+                        break;
+                        
+                    case 'delete':
+                        if (!args.trim()) {
+                            await twilioWhatsAppService.sendMessage(phoneNumber, 'Please provide a knowledge ID. Format: !delete [knowledge-id]');
+                        } else {
+                            const result = await knowledgeService.deleteKnowledge(business.businessId, args.trim());
+                            if (result.success) {
+                                await businessService.updateKnowledgeCount(business.ownerPhone, -1);
+                                await twilioWhatsAppService.sendMessage(phoneNumber, `✅ ${result.message}`);
+                            } else {
+                                await twilioWhatsAppService.sendMessage(phoneNumber, `❌ ${result.message}`);
+                            }
+                        }
+                        break;
+                        
+                    default:
+                        await twilioWhatsAppService.sendMessage(phoneNumber, `❌ Unknown command: ${command}\n\nUse !help for available commands.`);
+                }
             } else if (Body.toLowerCase().startsWith('!business ')) {
                 logger.info(`[WEBHOOK] Customer query detected`);
                 // Handle customer query
