@@ -25,6 +25,103 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/knowledge', knowledgeBaseModule);
 app.use('/webhooks', webhooksModule);
 
+// WhatsApp webhook endpoint
+app.post('/api/webhook/whatsapp', async (req, res) => {
+    try {
+        logger.info('[WEBHOOK] Received WhatsApp webhook:', JSON.stringify(req.body, null, 2));
+        
+        const { From, To, Body, MessageSid } = req.body;
+        
+        if (!From || !Body) {
+            logger.warn('[WEBHOOK] Invalid webhook data - missing From or Body');
+            return res.status(400).send('Invalid webhook data');
+        }
+        
+        // Extract phone number from WhatsApp format (remove whatsapp: prefix)
+        const phoneNumber = From.replace('whatsapp:', '');
+        logger.info(`[WEBHOOK] Processing message from ${phoneNumber}: "${Body}"`);
+        
+        // Handle business registration command
+        if (Body.toLowerCase().startsWith('!register ')) {
+            const businessName = Body.substring(10).trim();
+            
+            if (!businessName) {
+                await twilioWhatsAppService.sendMessage(phoneNumber, 'Please provide a business name. Format: !register [Business Name]');
+                return res.status(200).send('OK');
+            }
+            
+            logger.info(`[WEBHOOK] Registration request: "${businessName}" from ${phoneNumber}`);
+            
+            // Register the business
+            const businessResult = await businessService.registerBusiness(phoneNumber, businessName);
+            
+            if (businessResult.success) {
+                logger.success(`[WEBHOOK] Business registered: ${businessName} (ID: ${businessResult.businessId})`);
+                
+                // Register with Twilio service
+                const twilioResult = await twilioWhatsAppService.registerBusiness(
+                    businessResult.businessId,
+                    businessName,
+                    To, // WhatsApp number
+                    phoneNumber
+                );
+                
+                if (twilioResult.success) {
+                    await twilioWhatsAppService.sendMessage(
+                        phoneNumber,
+                        `🎉 Business "${businessName}" registered successfully!\n\nBusiness ID: ${businessResult.businessId}\n\nCustomers can now query your business using:\n!business ${businessResult.businessId} [question]\n\nUse !help for available commands.`
+                    );
+                } else {
+                    await twilioWhatsAppService.sendMessage(
+                        phoneNumber,
+                        `✅ Business registered in database but Twilio setup incomplete. Business ID: ${businessResult.businessId}`
+                    );
+                }
+            } else {
+                logger.error(`[WEBHOOK] Registration failed: ${businessResult.message}`);
+                await twilioWhatsAppService.sendMessage(phoneNumber, `❌ Registration failed: ${businessResult.message}`);
+            }
+        } else {
+            // Handle other commands and customer queries
+            logger.info(`[WEBHOOK] Processing non-registration message: "${Body}"`);
+            
+            // Check if it's a business owner command
+            const business = await businessService.getBusinessByOwner(phoneNumber);
+            if (business && Body.startsWith('!')) {
+                logger.info(`[WEBHOOK] Business owner command from ${business.businessName}`);
+                // Handle business owner commands here
+                await twilioWhatsAppService.sendMessage(phoneNumber, 'Command received. Processing...');
+            } else if (Body.toLowerCase().startsWith('!business ')) {
+                logger.info(`[WEBHOOK] Customer query detected`);
+                // Handle customer query
+                const parts = Body.split(' ');
+                if (parts.length >= 3) {
+                    const businessId = parts[1];
+                    const query = parts.slice(2).join(' ');
+                    
+                    logger.info(`[WEBHOOK] Customer query for business ${businessId}: "${query}"`);
+                    
+                    // Record query and generate response
+                    await businessService.recordQuery(businessId);
+                    const response = await aiService.generateResponse(query, businessId);
+                    await twilioWhatsAppService.sendMessage(phoneNumber, response);
+                } else {
+                    await twilioWhatsAppService.sendMessage(phoneNumber, 'Please provide a valid query. Format: !business [ID] [your question]');
+                }
+            } else {
+                logger.debug(`[WEBHOOK] Unrecognized message format from ${phoneNumber}`);
+                await twilioWhatsAppService.sendMessage(phoneNumber, 'Welcome! Use !register [Business Name] to register your business, or !business [ID] [question] to query a business.');
+            }
+        }
+        
+        res.status(200).send('OK');
+        
+    } catch (error) {
+        logger.error('[WEBHOOK] Error processing WhatsApp webhook:', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
 app.get('/', (req, res) => {
     const packageJson = require('../package.json');
     const deploymentTime = process.env.DEPLOYMENT_TIME || new Date().toISOString();
@@ -203,6 +300,55 @@ app.get('/api/cache/inspect', async (req, res) => {
 });
 
 // Business management endpoints
+app.post('/api/businesses', async (req, res) => {
+    try {
+        const { businessName, whatsappNumber, ownerPhone } = req.body;
+        
+        if (!businessName || !whatsappNumber || !ownerPhone) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: businessName, whatsappNumber, ownerPhone'
+            });
+        }
+
+        // Register in business service
+        const businessResult = await businessService.registerBusiness(ownerPhone, businessName);
+        
+        if (!businessResult.success) {
+            return res.status(400).json(businessResult);
+        }
+
+        // Register in Twilio service
+        const twilioResult = await twilioWhatsAppService.registerBusiness(
+            businessResult.businessId,
+            businessName,
+            whatsappNumber,
+            ownerPhone
+        );
+
+        if (!twilioResult.success) {
+            return res.status(500).json({
+                success: false,
+                error: `Business registered but Twilio registration failed: ${twilioResult.error}`
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Business registered successfully',
+            businessId: businessResult.businessId,
+            whatsappNumber: whatsappNumber
+        });
+
+    } catch (error) {
+        logger.error('[API] Error registering business:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 app.post('/api/businesses/register', async (req, res) => {
     try {
         const { businessName, whatsappNumber, ownerPhone } = req.body;
