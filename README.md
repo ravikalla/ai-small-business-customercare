@@ -149,6 +149,28 @@ For detailed instructions, see [CLOUDWATCH_SETUP.md](docs/CLOUDWATCH_SETUP.md)
 
 For GitHub Actions deployment setup, see [GITHUB_ACTIONS_SETUP.md](docs/GITHUB_ACTIONS_SETUP.md)
 
+## 🔧 Configuration
+
+### Environment Variables for Scripts
+
+The automation scripts use environment variables for flexibility:
+
+```bash
+# Set your EC2 DNS (replace with your actual DNS)
+export EC2_HOST="ec2-54-86-8-77.compute-1.amazonaws.com"
+export BASE_URL="http://ec2-54-86-8-77.compute-1.amazonaws.com:3000"
+
+# Run any script with your configuration
+./scripts/test-deployment.sh
+./scripts/quick-monitor.sh
+```
+
+**Available Scripts:**
+- `scripts/test-deployment.sh` - Test application endpoints
+- `scripts/quick-monitor.sh` - Quick health monitoring  
+- `scripts/monitor-logs.sh` - Log monitoring commands
+- `scripts/remote-monitor.sh` - Remote server monitoring
+
 ## 📁 Project Structure
 
 ```

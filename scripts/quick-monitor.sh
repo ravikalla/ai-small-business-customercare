@@ -3,7 +3,7 @@
 # Quick Application Monitoring Script
 # Author: Ravi Kalla <ravi2523096+sbc@gmail.com>
 
-BASE_URL="http://ec2-100-26-45-35.compute-1.amazonaws.com:3000"
+BASE_URL="${BASE_URL:-http://ec2-54-86-8-77.compute-1.amazonaws.com:3000}"
 
 echo "🔍 Quick Application Health Check"
 echo "================================="
@@ -26,4 +26,4 @@ echo "$response" | jq -r '.status // "error"'
 
 echo ""
 echo "✅ Monitoring complete!"
-echo "🔗 For detailed logs, SSH to: ubuntu@ec2-100-26-45-35.compute-1.amazonaws.com"
+echo "🔗 For detailed logs, SSH to: ubuntu@${EC2_HOST:-ec2-54-86-8-77.compute-1.amazonaws.com}"

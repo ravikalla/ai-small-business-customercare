@@ -3,7 +3,7 @@
 # Application Log Monitoring Script
 # Author: Ravi Kalla <ravi2523096+sbc@gmail.com>
 
-EC2_HOST="ec2-100-26-45-35.compute-1.amazonaws.com"
+EC2_HOST="${EC2_HOST:-ec2-54-86-8-77.compute-1.amazonaws.com}"
 KEY_PATH="your-key.pem"  # Update this path to your actual .pem file
 
 echo "🔍 Application Log Monitoring Commands"

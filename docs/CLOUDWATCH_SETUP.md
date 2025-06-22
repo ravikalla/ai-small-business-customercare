@@ -113,7 +113,7 @@ SSH to your EC2 instance and run:
 
 ```bash
 # SSH to your server
-ssh -i your-key.pem ubuntu@ec2-100-26-45-35.compute-1.amazonaws.com
+ssh -i your-key.pem ubuntu@your-ec2-public-dns
 
 # Copy and run the complete setup script (recommended)
 curl -O https://raw.githubusercontent.com/ravikalla/ai-small-business-customercare/main/scripts/setup-cloudwatch-complete.sh

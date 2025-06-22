@@ -295,7 +295,7 @@ app.get('/simple-logs', (req, res) => {
                 logs: [
                     'Error accessing PM2 logs',
                     'Please SSH to server for detailed logs:',
-                    'ssh -i your-key.pem ubuntu@ec2-100-26-45-35.compute-1.amazonaws.com',
+                    'ssh -i your-key.pem ubuntu@your-ec2-public-dns',
                     'pm2 logs sbc-system --timestamp'
                 ]
             });

@@ -3,7 +3,7 @@
 # Corrected Testing Script for SBC System
 # Author: Ravi Kalla <ravi2523096+sbc@gmail.com>
 
-BASE_URL="http://ec2-100-26-45-35.compute-1.amazonaws.com:3000"
+BASE_URL="${BASE_URL:-http://ec2-54-86-8-77.compute-1.amazonaws.com:3000}"
 
 echo "🧪 Testing Small Business Customer Care System - Corrected Version"
 echo "Base URL: $BASE_URL"
