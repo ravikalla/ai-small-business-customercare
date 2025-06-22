@@ -19,7 +19,7 @@ This guide sets up centralized logging for your Small Business Customer Care Sys
 **Step 1: Create IAM Role (Run locally with AWS CLI configured)**
 ```bash
 # Download and run the IAM setup script
-curl -O https://raw.githubusercontent.com/ravikalla/ai-small-business-customercare/main/create-iam-role-complete.sh
+curl -O https://raw.githubusercontent.com/ravikalla/ai-small-business-customercare/main/scripts/create-iam-role-complete.sh
 chmod +x create-iam-role-complete.sh
 ./create-iam-role-complete.sh
 ```
@@ -27,7 +27,7 @@ chmod +x create-iam-role-complete.sh
 **Step 2: Setup CloudWatch on EC2 (SSH to your server)**
 ```bash
 # Download and run the complete setup script
-curl -O https://raw.githubusercontent.com/ravikalla/ai-small-business-customercare/main/setup-cloudwatch-complete.sh
+curl -O https://raw.githubusercontent.com/ravikalla/ai-small-business-customercare/main/scripts/setup-cloudwatch-complete.sh
 chmod +x setup-cloudwatch-complete.sh
 ./setup-cloudwatch-complete.sh
 ```
@@ -116,12 +116,12 @@ SSH to your EC2 instance and run:
 ssh -i your-key.pem ubuntu@ec2-100-26-45-35.compute-1.amazonaws.com
 
 # Copy and run the complete setup script (recommended)
-curl -O https://raw.githubusercontent.com/ravikalla/ai-small-business-customercare/main/setup-cloudwatch-complete.sh
+curl -O https://raw.githubusercontent.com/ravikalla/ai-small-business-customercare/main/scripts/setup-cloudwatch-complete.sh
 chmod +x setup-cloudwatch-complete.sh
 ./setup-cloudwatch-complete.sh
 
 # Or use the basic setup script
-curl -O https://raw.githubusercontent.com/ravikalla/ai-small-business-customercare/main/setup-cloudwatch.sh
+curl -O https://raw.githubusercontent.com/ravikalla/ai-small-business-customercare/main/scripts/setup-cloudwatch.sh
 chmod +x setup-cloudwatch.sh
 ./setup-cloudwatch.sh
 ```
