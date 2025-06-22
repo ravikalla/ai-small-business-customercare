@@ -87,9 +87,28 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
             // Handle other commands and customer queries
             logger.info(`[WEBHOOK] Processing non-registration message: "${Body}"`);
             
-            // Check if it's a business owner command
-            const business = await businessService.getBusinessByOwner(phoneNumber);
-            if (business && Body.startsWith('!')) {
+            // Check if it's a customer query first (takes priority)
+            if (Body.toLowerCase().startsWith('!business ')) {
+                logger.info(`[WEBHOOK] Customer query detected`);
+                // Handle customer query
+                const parts = Body.split(' ');
+                if (parts.length >= 3) {
+                    const businessId = parts[1];
+                    const query = parts.slice(2).join(' ');
+                    
+                    logger.info(`[WEBHOOK] Customer query for business ${businessId}: "${query}"`);
+                    
+                    // Record query and generate response
+                    await businessService.recordQuery(businessId);
+                    const response = await aiService.generateResponse(query, businessId);
+                    await twilioWhatsAppService.sendMessage(phoneNumber, response);
+                } else {
+                    await twilioWhatsAppService.sendMessage(phoneNumber, 'Please provide a valid query. Format: !business [ID] [your question]');
+                }
+            } else {
+                // Check if it's a business owner command
+                const business = await businessService.getBusinessByOwner(phoneNumber);
+                if (business && Body.startsWith('!')) {
                 logger.info(`[WEBHOOK] Business owner command from ${business.businessName}`);
                 
                 // Parse the command
@@ -183,26 +202,10 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
                     default:
                         await twilioWhatsAppService.sendMessage(phoneNumber, `❌ Unknown command: ${command}\n\nUse !help for available commands.`);
                 }
-            } else if (Body.toLowerCase().startsWith('!business ')) {
-                logger.info(`[WEBHOOK] Customer query detected`);
-                // Handle customer query
-                const parts = Body.split(' ');
-                if (parts.length >= 3) {
-                    const businessId = parts[1];
-                    const query = parts.slice(2).join(' ');
-                    
-                    logger.info(`[WEBHOOK] Customer query for business ${businessId}: "${query}"`);
-                    
-                    // Record query and generate response
-                    await businessService.recordQuery(businessId);
-                    const response = await aiService.generateResponse(query, businessId);
-                    await twilioWhatsAppService.sendMessage(phoneNumber, response);
                 } else {
-                    await twilioWhatsAppService.sendMessage(phoneNumber, 'Please provide a valid query. Format: !business [ID] [your question]');
+                    logger.debug(`[WEBHOOK] Unrecognized message format from ${phoneNumber}`);
+                    await twilioWhatsAppService.sendMessage(phoneNumber, 'Welcome! Use !register [Business Name] to register your business, or !business [ID] [question] to query a business.');
                 }
-            } else {
-                logger.debug(`[WEBHOOK] Unrecognized message format from ${phoneNumber}`);
-                await twilioWhatsAppService.sendMessage(phoneNumber, 'Welcome! Use !register [Business Name] to register your business, or !business [ID] [question] to query a business.');
             }
         }
         
