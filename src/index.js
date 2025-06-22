@@ -14,6 +14,8 @@ const twilioWhatsAppService = require('./services/twilioWhatsAppService');
 const businessService = require('./services/businessService');
 const knowledgeBaseModule = require('./modules/knowledgeBase');
 const webhooksModule = require('./routes/webhooks');
+const knowledgeService = require('./services/knowledgeService');
+const aiService = require('./services/aiService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
