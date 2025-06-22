@@ -12,7 +12,37 @@ This guide sets up centralized logging for your Small Business Customer Care Sys
 - AWS CLI configured (or use AWS Console)
 - Appropriate IAM permissions
 
-## Step-by-Step Setup
+## 🚀 Quick Setup (Automated)
+
+### Option A: Complete Automation (Recommended)
+
+**Step 1: Create IAM Role (Run locally with AWS CLI configured)**
+```bash
+# Download and run the IAM setup script
+curl -O https://raw.githubusercontent.com/ravikalla/ai-small-business-customercare/main/create-iam-role-complete.sh
+chmod +x create-iam-role-complete.sh
+./create-iam-role-complete.sh
+```
+
+**Step 2: Setup CloudWatch on EC2 (SSH to your server)**
+```bash
+# Download and run the complete setup script
+curl -O https://raw.githubusercontent.com/ravikalla/ai-small-business-customercare/main/setup-cloudwatch-complete.sh
+chmod +x setup-cloudwatch-complete.sh
+./setup-cloudwatch-complete.sh
+```
+
+**That's it!** The scripts will:
+- ✅ Create IAM roles and policies automatically
+- ✅ Attach roles to your EC2 instances interactively
+- ✅ Auto-discover your application logs
+- ✅ Install and configure CloudWatch agent
+- ✅ Set up proper permissions
+- ✅ Start monitoring immediately
+
+---
+
+## 📋 Manual Setup (Step-by-Step)
 
 ### Step 1: Create IAM Role for CloudWatch
 
@@ -85,7 +115,12 @@ SSH to your EC2 instance and run:
 # SSH to your server
 ssh -i your-key.pem ubuntu@ec2-100-26-45-35.compute-1.amazonaws.com
 
-# Copy and run the setup script
+# Copy and run the complete setup script (recommended)
+curl -O https://raw.githubusercontent.com/ravikalla/ai-small-business-customercare/main/setup-cloudwatch-complete.sh
+chmod +x setup-cloudwatch-complete.sh
+./setup-cloudwatch-complete.sh
+
+# Or use the basic setup script
 curl -O https://raw.githubusercontent.com/ravikalla/ai-small-business-customercare/main/setup-cloudwatch.sh
 chmod +x setup-cloudwatch.sh
 ./setup-cloudwatch.sh

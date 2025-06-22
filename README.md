@@ -123,4 +123,28 @@ Automated deployment to AWS EC2 with GitHub Actions:
    - Application logs: `pm2 logs sbc-system`
    - Nginx logs: `sudo tail -f /var/log/nginx/error.log`
 
-For detailed setup instructions, see [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md)
+### CloudWatch Logging Setup
+
+Set up enterprise-grade centralized logging with AWS CloudWatch:
+
+**Quick Setup (2 commands):**
+```bash
+# 1. Create IAM role (run locally)
+curl -O https://raw.githubusercontent.com/ravikalla/ai-small-business-customercare/main/create-iam-role-complete.sh
+chmod +x create-iam-role-complete.sh && ./create-iam-role-complete.sh
+
+# 2. Setup CloudWatch (run on EC2)
+curl -O https://raw.githubusercontent.com/ravikalla/ai-small-business-customercare/main/setup-cloudwatch-complete.sh
+chmod +x setup-cloudwatch-complete.sh && ./setup-cloudwatch-complete.sh
+```
+
+**Features:**
+- ✅ Automated log discovery and configuration
+- ✅ Real-time log streaming to CloudWatch
+- ✅ System, application, and PM2 log monitoring
+- ✅ Advanced log querying with CloudWatch Insights
+- ✅ Cost-effective log retention policies
+
+For detailed instructions, see [CLOUDWATCH_SETUP.md](CLOUDWATCH_SETUP.md)
+
+For GitHub Actions deployment setup, see [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md)
