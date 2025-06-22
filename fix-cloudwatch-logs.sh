@@ -16,6 +16,7 @@ if [ -z "$ROLE_CHECK" ]; then
     echo "   EC2 → Instance → Actions → Security → Modify IAM role"
 else
     echo "✅ IAM role found: $ROLE_CHECK"
+    echo "   Expected: SBC-Prod-CloudWatch-Role"
 fi
 
 # Check 2: CloudWatch Agent Status

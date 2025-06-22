@@ -23,14 +23,14 @@ This guide sets up centralized logging for your Small Business Customer Care Sys
 3. **Attach policies:**
    - `CloudWatchAgentServerPolicy`
    - Or create custom policy using `cloudwatch-iam-policy.json`
-4. **Name:** `SBC-CloudWatch-Role`
+4. **Name:** `SBC-Prod-CloudWatch-Role`
 5. **Create role**
 
 #### Option B: Using AWS CLI
 
 ```bash
 # Create IAM role
-aws iam create-role --role-name SBC-CloudWatch-Role \
+aws iam create-role --role-name SBC-Prod-CloudWatch-Role \
   --assume-role-policy-document '{
     "Version": "2012-10-17",
     "Statement": [
@@ -43,16 +43,16 @@ aws iam create-role --role-name SBC-CloudWatch-Role \
   }'
 
 # Create instance profile
-aws iam create-instance-profile --instance-profile-name SBC-CloudWatch-Profile
+aws iam create-instance-profile --instance-profile-name SBC-Prod-CloudWatch-Profile
 
 # Add role to instance profile
 aws iam add-role-to-instance-profile \
-  --instance-profile-name SBC-CloudWatch-Profile \
-  --role-name SBC-CloudWatch-Role
+  --instance-profile-name SBC-Prod-CloudWatch-Profile \
+  --role-name SBC-Prod-CloudWatch-Role
 
 # Attach CloudWatch policy
 aws iam attach-role-policy \
-  --role-name SBC-CloudWatch-Role \
+  --role-name SBC-Prod-CloudWatch-Role \
   --policy-arn arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
 ```
 
@@ -61,7 +61,7 @@ aws iam attach-role-policy \
 #### Using AWS Console:
 1. **EC2 Console** → **Instances** → Select your instance
 2. **Actions** → **Security** → **Modify IAM role**
-3. **Select:** `SBC-CloudWatch-Role`
+3. **Select:** `SBC-Prod-CloudWatch-Role`
 4. **Save**
 
 #### Using AWS CLI:
@@ -74,7 +74,7 @@ INSTANCE_ID=$(aws ec2 describe-instances \
 # Associate IAM instance profile
 aws ec2 associate-iam-instance-profile \
   --instance-id $INSTANCE_ID \
-  --iam-instance-profile Name=SBC-CloudWatch-Profile
+  --iam-instance-profile Name=SBC-Prod-CloudWatch-Profile
 ```
 
 ### Step 3: Install CloudWatch Agent on EC2
