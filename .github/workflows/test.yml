@@ -51,14 +51,25 @@ jobs:
         fi
       continue-on-error: true
 
-    - name: Run unit tests (if available)
+    - name: Run BDD Tests
       run: |
-        if npm test --silent 2>/dev/null; then
-          npm test
-        else
-          echo "No test script found, skipping..."
-        fi
-      continue-on-error: true
+        echo "🧪 Running BDD Test Suite..."
+        
+        # Run smoke tests first (critical functionality)
+        echo "Running smoke tests..."
+        npm run test:smoke || {
+          echo "❌ Smoke tests failed - critical functionality broken"
+          exit 1
+        }
+        
+        # Run full BDD test suite
+        echo "Running complete BDD test suite..."
+        npm test || {
+          echo "❌ BDD tests failed"
+          exit 1
+        }
+        
+        echo "✅ All BDD tests passed"
 
     - name: Test application startup
       run: |
@@ -80,10 +91,26 @@ jobs:
         # Clean up
         kill $APP_PID 2>/dev/null || true
 
-    - name: Test integration endpoints
+    - name: Generate Test Reports
       run: |
-        echo "🧪 Running integration tests..."
-        node test-twilio-integration.js || echo "Integration tests completed"
+        echo "📊 Generating test reports..."
+        npm run test:report || echo "Report generation completed"
+        
+        # Upload test results if they exist
+        if [ -f "test-reports/cucumber_report.html" ]; then
+          echo "✅ Test reports generated successfully"
+        else
+          echo "⚠️ No test reports found"
+        fi
+      continue-on-error: true
+      
+    - name: Upload Test Reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-reports
+        path: test-reports/
+        retention-days: 30
 
   security:
     runs-on: ubuntu-latest

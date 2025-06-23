@@ -108,9 +108,15 @@ Then('the response status should be {int}', function (expectedStatus) {
   this.expect(this.response.status).to.equal(expectedStatus);
 });
 
-Then('the response should contain {string}: {word}', function (key, value) {
-  const boolValue = value === 'true';
-  this.expect(this.response.body[key]).to.equal(boolValue);
+Then('the response should contain {string}: {string}', function (key, expectedValue) {
+  if (expectedValue === 'true' || expectedValue === 'false') {
+    const boolValue = expectedValue === 'true';
+    this.expect(this.response.body[key]).to.equal(boolValue);
+  } else if (expectedValue === 'ok') {
+    this.expect(this.response.body[key]).to.equal('ok');
+  } else {
+    this.expect(this.response.body[key]).to.equal(expectedValue);
+  }
 });
 
 Then('the response should include a business ID', function () {
