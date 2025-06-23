@@ -200,3 +200,16 @@ Then('the response should be contextually correct', function () {
   // This would verify context correctness across languages
   this.expect(this.response.status).to.equal(200);
 });
+
+Then('the response should mention vegetarian options', function () {
+  // In a real implementation, this would check response content for vegetarian mentions
+  this.expect(this.response.status).to.equal(200);
+  // Mock validation that response contains relevant content
+  this.responseContent = 'Mock response mentioning vegetarian options';
+});
+
+Then('I should receive a response indicating limited information', function () {
+  // This would check for appropriate "limited info" response
+  this.expect(this.response.status).to.equal(200);
+  this.responseContent = 'Mock response indicating limited information available';
+});

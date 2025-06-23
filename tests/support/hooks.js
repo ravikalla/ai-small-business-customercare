@@ -168,9 +168,39 @@ function setupTestRoutes() {
     });
   });
 
+  // Knowledge list endpoint
+  this.app.get('/api/knowledge/list', (req, res) => {
+    const { businessId } = req.query;
+    
+    if (!businessId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Business ID required'
+      });
+    }
+
+    // Get knowledge entries for the business
+    const entries = Array.from(self.testData.knowledgeEntries.values())
+      .filter(entry => entry.businessId === businessId);
+
+    res.json({
+      success: true,
+      entries: entries,
+      total: entries.length
+    });
+  });
+
   // WhatsApp webhook endpoint
   this.app.post('/api/webhook/whatsapp', (req, res) => {
     const { From, To, Body, MessageSid } = req.body;
+    
+    // Validate required Twilio webhook fields - check for empty strings too
+    if (!MessageSid || MessageSid === '' || !From || !Body) {
+      return res.status(400).json({
+        error: 'Missing required webhook fields',
+        required: ['MessageSid', 'From', 'Body']
+      });
+    }
     
     // Log webhook for testing
     self.testData.webhookRequests.push({

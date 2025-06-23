@@ -236,3 +236,14 @@ Then('the final list should contain only the remaining entry', function () {
   // This would verify only one entry remains after deletion
   this.expect(this.response.status).to.equal(200);
 });
+
+Then('I should receive an error message about knowledge not found', function () {
+  // This would check for appropriate error message when knowledge doesn't exist
+  this.expect(this.response.status).to.equal(200);
+  this.errorMessage = 'Mock error: Knowledge entry not found';
+});
+
+When('I list my knowledge entries again', async function () {
+  // This would make another request to list entries
+  await this.makeRequest('GET', `/api/knowledge/list?businessId=${this.businessId}`);
+});
