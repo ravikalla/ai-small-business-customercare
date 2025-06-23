@@ -56,7 +56,7 @@ graph TB
     end
     
     subgraph "Infrastructure"
-        EC2[AWS EC2]
+        EC2[Fargate]
         CW[CloudWatch<br/>Logging]
         PS[Parameter Store<br/>Secrets]
     end
@@ -380,7 +380,7 @@ graph TB
 ### Deployment Features:
 
 - **Local Development**: Hot reload with ngrok for webhook testing
-- **Production**: AWS EC2 with PM2 process management
+- **Production**: AWS Fargate with PM2 process management
 - **Monitoring**: CloudWatch for logs and metrics
 - **Security**: IAM roles, Parameter Store for secrets
 - **CI/CD**: GitHub Actions for automated deployment
