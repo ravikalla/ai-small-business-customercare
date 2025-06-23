@@ -7,7 +7,17 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "jest"
+    "test": "cucumber-js",
+    "test:api": "cucumber-js --tags @api",
+    "test:business": "cucumber-js --tags @business",
+    "test:knowledge": "cucumber-js --tags @knowledge",
+    "test:webhook": "cucumber-js --tags @webhook",
+    "test:integration": "cucumber-js --tags @integration",
+    "test:smoke": "cucumber-js --tags @smoke",
+    "test:report": "cucumber-js --format html:test-reports/cucumber_report.html",
+    "test:junit": "cucumber-js --format junit:test-reports/cucumber_report.xml",
+    "lint": "eslint src/",
+    "coverage": "nyc cucumber-js"
   },
   "dependencies": {
     "@pinecone-database/pinecone": "^2.2.0",
@@ -23,8 +33,17 @@
     "whatsapp-web.js": "^1.23.0"
   },
   "devDependencies": {
+    "@cucumber/cucumber": "^10.3.1",
     "axios": "^1.10.0",
+    "chai": "^4.3.10",
+    "chai-http": "^4.4.0",
+    "cucumber-html-reporter": "^7.1.1",
+    "eslint": "^8.56.0",
     "jest": "^29.7.0",
-    "nodemon": "^3.0.3"
+    "nock": "^13.4.0",
+    "nodemon": "^3.0.3",
+    "nyc": "^15.1.0",
+    "sinon": "^17.0.1",
+    "supertest": "^6.3.3"
   }
 }

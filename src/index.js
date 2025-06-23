@@ -57,14 +57,14 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
             const businessName = Body.substring(10).trim();
             
             if (!businessName) {
-                await twilioWhatsAppService.sendMessage(phoneNumber, 'Please provide a business name. Format: !register [Business Name]');
+                await twilioWhatsAppService.sendMessage(customerPhone, 'Please provide a business name. Format: !register [Business Name]');
                 return res.status(200).send('OK');
             }
             
-            logger.info(`[WEBHOOK] Registration request: "${businessName}" from ${phoneNumber}`);
+            logger.info(`[WEBHOOK] Registration request: "${businessName}" from ${customerPhone}`);
             
             // Register the business
-            const businessResult = await businessService.registerBusiness(phoneNumber, businessName);
+            const businessResult = await businessService.registerBusiness(customerPhone, businessName);
             
             if (businessResult.success) {
                 logger.success(`[WEBHOOK] Business registered: ${businessName} (ID: ${businessResult.businessId})`);
@@ -74,23 +74,23 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
                     businessResult.businessId,
                     businessName,
                     To, // WhatsApp number
-                    phoneNumber
+                    customerPhone
                 );
                 
                 if (twilioResult.success) {
                     await twilioWhatsAppService.sendMessage(
-                        phoneNumber,
+                        customerPhone,
                         `🎉 Business "${businessName}" registered successfully!\n\nBusiness ID: ${businessResult.businessId}\n\nCustomers can now query your business using:\n!business ${businessResult.businessId} [question]\n\nUse !help for available commands.`
                     );
                 } else {
                     await twilioWhatsAppService.sendMessage(
-                        phoneNumber,
+                        customerPhone,
                         `✅ Business registered in database but Twilio setup incomplete. Business ID: ${businessResult.businessId}`
                     );
                 }
             } else {
                 logger.error(`[WEBHOOK] Registration failed: ${businessResult.message}`);
-                await twilioWhatsAppService.sendMessage(phoneNumber, `❌ Registration failed: ${businessResult.message}`);
+                await twilioWhatsAppService.sendMessage(customerPhone, `❌ Registration failed: ${businessResult.message}`);
             }
         } else {
             // Handle other commands and customer queries
@@ -145,7 +145,7 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
                 switch (command) {
                     case 'add':
                         if (!args.trim()) {
-                            await twilioWhatsAppService.sendMessage(phoneNumber, 'Please provide content. Format: !add [your knowledge text]');
+                            await twilioWhatsAppService.sendMessage(customerPhone, 'Please provide content. Format: !add [your knowledge text]');
                         } else {
                             logger.info(`[WEBHOOK] Adding knowledge for ${senderBusiness.businessName}`);
                             const result = await knowledgeService.addTextKnowledge(
@@ -156,9 +156,9 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
                             
                             if (result.success) {
                                 await businessService.updateKnowledgeCount(senderBusiness.ownerPhone);
-                                await twilioWhatsAppService.sendMessage(phoneNumber, `✅ ${result.message}\n"${args.substring(0, 100)}${args.length > 100 ? '...' : ''}"`);
+                                await twilioWhatsAppService.sendMessage(customerPhone, `✅ ${result.message}\n"${args.substring(0, 100)}${args.length > 100 ? '...' : ''}"`);
                             } else {
-                                await twilioWhatsAppService.sendMessage(phoneNumber, `❌ ${result.message}`);
+                                await twilioWhatsAppService.sendMessage(customerPhone, `❌ ${result.message}`);
                             }
                         }
                         break;
@@ -169,7 +169,7 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
                         const stats = await knowledgeService.getKnowledgeStats(senderBusiness.businessId);
                         
                         if (entries.length === 0) {
-                            await twilioWhatsAppService.sendMessage(phoneNumber, `📚 Your Knowledge Base (${senderBusiness.businessName}):\n\nNo entries yet. Use !add [text] or send documents to get started!`);
+                            await twilioWhatsAppService.sendMessage(customerPhone, `📚 Your Knowledge Base (${senderBusiness.businessName}):\n\nNo entries yet. Use !add [text] or send documents to get started!`);
                         } else {
                             let response = `📚 Your Knowledge Base (${senderBusiness.businessName}):\n\n`;
                             entries.slice(0, 10).forEach(entry => {
@@ -182,7 +182,7 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
                             }
                             
                             response += `\n📊 Total: ${stats.total} entries (${stats.text} text, ${stats.documents} documents)`;
-                            await twilioWhatsAppService.sendMessage(phoneNumber, response);
+                            await twilioWhatsAppService.sendMessage(customerPhone, response);
                         }
                         break;
                         
@@ -201,32 +201,31 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
 💡 *Tips:*
 - Customers can query your business using: !business ${senderBusiness.businessId} [question]
 - All uploaded content is processed and made searchable`;
-                        await twilioWhatsAppService.sendMessage(phoneNumber, help);
+                        await twilioWhatsAppService.sendMessage(customerPhone, help);
                         break;
                         
                     case 'delete':
                         if (!args.trim()) {
-                            await twilioWhatsAppService.sendMessage(phoneNumber, 'Please provide a knowledge ID. Format: !delete [knowledge-id]');
+                            await twilioWhatsAppService.sendMessage(customerPhone, 'Please provide a knowledge ID. Format: !delete [knowledge-id]');
                         } else {
                             const result = await knowledgeService.deleteKnowledge(senderBusiness.businessId, args.trim());
                             if (result.success) {
                                 await businessService.updateKnowledgeCount(senderBusiness.ownerPhone, -1);
-                                await twilioWhatsAppService.sendMessage(phoneNumber, `✅ ${result.message}`);
+                                await twilioWhatsAppService.sendMessage(customerPhone, `✅ ${result.message}`);
                             } else {
-                                await twilioWhatsAppService.sendMessage(phoneNumber, `❌ ${result.message}`);
+                                await twilioWhatsAppService.sendMessage(customerPhone, `❌ ${result.message}`);
                             }
                         }
                         break;
                         
                     default:
-                        await twilioWhatsAppService.sendMessage(phoneNumber, `❌ Unknown command: ${command}\n\nUse !help for available commands.`);
+                        await twilioWhatsAppService.sendMessage(customerPhone, `❌ Unknown command: ${command}\n\nUse !help for available commands.`);
                 }
-                } else {
-                    logger.debug(`[WEBHOOK] Unrecognized message format from ${phoneNumber}`);
-                    await twilioWhatsAppService.sendMessage(phoneNumber, 'Welcome! Use !register [Business Name] to register your business, or !business [ID] [question] to query a business.');
+            } else {
+                    logger.debug(`[WEBHOOK] Unrecognized message format from ${customerPhone}`);
+                    await twilioWhatsAppService.sendMessage(customerPhone, 'Welcome! Use !register [Business Name] to register your business, or !business [ID] [question] to query a business.');
                 }
             }
-        }
         
         res.status(200).send('OK');
         
