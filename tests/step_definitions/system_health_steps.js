@@ -74,8 +74,12 @@ When('system metrics exceed thresholds', function () {
 });
 
 // Then steps
-Then('the response should contain {string}: {string}', function (key, expectedValue) {
-  this.expect(this.response.body[key]).to.equal(expectedValue);
+Then('the health response should contain {string}: {string}', function (key, expectedValue) {
+  if (expectedValue === 'ok') {
+    this.expect(this.response.body[key]).to.equal('ok');
+  } else {
+    this.expect(this.response.body[key]).to.equal(expectedValue);
+  }
 });
 
 Then('the response should include system uptime', function () {

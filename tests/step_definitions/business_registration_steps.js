@@ -49,11 +49,14 @@ When('I send a WhatsApp message {string}', async function (message) {
 
 When('I POST to {string} with:', async function (endpoint, dataTable) {
   const data = {};
-  dataTable.hashes().forEach(row => {
-    Object.keys(row).forEach(key => {
-      data[key] = row[key];
-    });
-  });
+  const rows = dataTable.rawTable;
+  
+  // Parse the data table rows
+  for (let i = 0; i < rows.length; i++) {
+    const key = rows[i][0];
+    const value = rows[i][1];
+    data[key] = value;
+  }
   
   await this.makeRequest('POST', endpoint, data);
 });
@@ -118,6 +121,10 @@ Then('the response should contain {string}: {string}', function (key, expectedVa
   } else {
     this.expect(this.response.body[key]).to.equal(expectedValue);
   }
+});
+
+Then('the response should contain {string}: true', function (key) {
+  this.expect(this.response.body[key]).to.equal(true);
 });
 
 Then('the response should include a business ID', function () {

@@ -181,6 +181,30 @@ function setupTestRoutes() {
       timestamp: new Date().toISOString()
     });
 
+    // Process business registration commands
+    if (Body && Body.startsWith('!register')) {
+      const businessName = Body.replace('!register', '').trim();
+      if (businessName) {
+        // Check if user already has a business registered
+        const existingBusinesses = Array.from(self.testData.businesses.values());
+        const userBusiness = existingBusinesses.find(b => b.ownerPhone === From);
+        
+        if (!userBusiness) {
+          const businessId = self.generateRandomBusinessId();
+          const business = {
+            businessId,
+            businessName,
+            ownerPhone: From,
+            whatsappNumber: To,
+            registeredAt: new Date().toISOString(),
+            status: 'active'
+          };
+          self.addTestBusiness(businessId, business);
+        }
+        // If business already exists, webhook still returns OK but doesn't create duplicate
+      }
+    }
+
     // Simulate processing delay
     setTimeout(() => {
       res.status(200).send('OK');

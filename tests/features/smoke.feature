@@ -11,7 +11,7 @@ Feature: Smoke Tests - Critical System Functionality
   Scenario: Health check endpoint responds correctly
     When I GET "/health"
     Then the response status should be 200
-    And the response should contain "status": "ok"
+    And the health response should contain "status": "ok"
 
   @smoke @business
   Scenario: Business registration API is functional
