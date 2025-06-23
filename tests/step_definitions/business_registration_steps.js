@@ -62,6 +62,7 @@ When('I POST to {string} with:', async function (endpoint, dataTable) {
 Then('I should receive a confirmation message', function () {
   // In a real implementation, this would check for Twilio message response
   this.expect(this.response.status).to.equal(200);
+  this.messageType = 'confirmation';
 });
 
 Then('the business should be registered in the database', function () {
@@ -130,9 +131,10 @@ Then('the business should be stored in the database', function () {
   this.expect(business).to.not.be.undefined;
 });
 
-Then('I should receive a {word} message', function (messageType) {
+Then('I should receive a {word} response message', function (messageType) {
   // messageType could be 'confirmation', 'error', etc.
   this.expect(this.response.status).to.equal(200);
+  this.messageType = messageType;
 });
 
 Then('the business creation should be {word}', function (status) {

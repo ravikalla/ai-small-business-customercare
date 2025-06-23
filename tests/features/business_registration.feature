@@ -48,7 +48,7 @@ Feature: Business Registration
   Scenario Outline: Registration with various business name formats
     Given I am a business owner with phone number "+15551234567"
     When I send a WhatsApp message "!register <business_name>"
-    Then I should receive a <result> message
+    Then I should receive a <result> response message
     And the business creation should be <status>
 
     Examples:

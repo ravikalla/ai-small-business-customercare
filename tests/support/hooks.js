@@ -35,13 +35,13 @@ Before(async function () {
   this.app.use(express.urlencoded({ extended: true }));
   
   // Add test routes
-  this.setupTestRoutes();
+  setupTestRoutes.call(this);
   
   // Clean test data
   await this.cleanDatabase();
   
   // Setup service mocks
-  this.setupDefaultMocks();
+  setupDefaultMocks.call(this);
 });
 
 After(async function () {

@@ -1,7 +1,7 @@
 module.exports = {
   default: {
-    requireModule: ['tests/support/world.js'],
     require: [
+      'tests/support/world.js',
       'tests/support/hooks.js',
       'tests/step_definitions/**/*.js'
     ],
