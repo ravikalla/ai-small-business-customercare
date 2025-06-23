@@ -34,14 +34,23 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
         
         const { From, To, Body, MessageSid } = req.body;
         
-        if (!From || !Body) {
-            logger.warn('[WEBHOOK] Invalid webhook data - missing From or Body');
+        if (!From || !Body || !To) {
+            logger.warn('[WEBHOOK] Invalid webhook data - missing From, To, or Body');
             return res.status(400).send('Invalid webhook data');
         }
         
-        // Extract phone number from WhatsApp format (remove whatsapp: prefix)
-        const phoneNumber = From.replace('whatsapp:', '');
-        logger.info(`[WEBHOOK] Processing message from ${phoneNumber}: "${Body}"`);
+        // Extract phone numbers from WhatsApp format
+        const customerPhone = From.replace('whatsapp:', '');
+        const businessWhatsAppNumber = To;
+        logger.info(`[WEBHOOK] Processing message from ${customerPhone} to ${businessWhatsAppNumber}: "${Body}"`);
+        
+        // Find business by WhatsApp number (for production with dedicated numbers)
+        const targetBusiness = await businessService.getBusinessByWhatsAppNumber(businessWhatsAppNumber);
+        if (!targetBusiness && !Body.toLowerCase().startsWith('!register')) {
+            logger.warn(`[WEBHOOK] No business found for WhatsApp number: ${businessWhatsAppNumber}`);
+            await twilioWhatsAppService.sendMessage(customerPhone, 'Sorry, this business is not registered with our system.');
+            return res.status(200).send('OK');
+        }
         
         // Handle business registration command
         if (Body.toLowerCase().startsWith('!register ')) {
@@ -88,9 +97,18 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
             logger.info(`[WEBHOOK] Processing non-registration message: "${Body}"`);
             
             // Check what type of command this is
-            const senderBusiness = await businessService.getBusinessByOwner(phoneNumber);
+            const senderBusiness = await businessService.getBusinessByOwner(customerPhone);
             
-            if (Body.toLowerCase().startsWith('!business ')) {
+            // Handle simple customer queries (production mode)
+            if (targetBusiness && !Body.startsWith('!')) {
+                logger.info(`[WEBHOOK] Simple customer query to ${targetBusiness.businessName}: "${Body}"`);
+                
+                // Record query and generate AI response
+                await businessService.recordQuery(targetBusiness.businessId);
+                const response = await aiService.generateResponse(Body, targetBusiness.businessId);
+                await twilioWhatsAppService.sendMessage(customerPhone, response);
+                return res.status(200).send('OK');
+            } else if (Body.toLowerCase().startsWith('!business ')) {
                 // This is always a customer query, regardless of who sends it
                 logger.info(`[WEBHOOK] Customer query detected from ${senderBusiness ? 'business owner' : 'customer'}`);
                 
@@ -104,9 +122,9 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
                     // Record query and generate response
                     await businessService.recordQuery(businessId);
                     const response = await aiService.generateResponse(query, businessId);
-                    await twilioWhatsAppService.sendMessage(phoneNumber, response);
+                    await twilioWhatsAppService.sendMessage(customerPhone, response);
                 } else {
-                    await twilioWhatsAppService.sendMessage(phoneNumber, 'Please provide a valid query. Format: !business [ID] [your question]');
+                    await twilioWhatsAppService.sendMessage(customerPhone, 'Please provide a valid query. Format: !business [ID] [your question]');
                 }
             } else if (senderBusiness && Body.startsWith('!')) {
                 // This is a business owner management command
@@ -115,7 +133,7 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
                 // Parse the command
                 const commandMatch = Body.match(/^!(\w+)(?:\s+(.*))?$/i);
                 if (!commandMatch) {
-                    await twilioWhatsAppService.sendMessage(phoneNumber, 'Invalid command format. Use !help for available commands.');
+                    await twilioWhatsAppService.sendMessage(customerPhone, 'Invalid command format. Use !help for available commands.');
                     return res.status(200).send('OK');
                 }
                 
