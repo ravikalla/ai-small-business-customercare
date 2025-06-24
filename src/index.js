@@ -41,13 +41,15 @@ const {
   errorLogging, 
   securityLogging 
 } = require('./middleware/logging');
+const { trackRequest } = require('./middleware/performanceMonitoring');
 
 // Use configuration system
 const appConfig = config.get('app');
 const securityConfig = config.get('security');
 
-// Request logging middleware (early in the stack)
+// Request logging and performance tracking middleware (early in the stack)
 app.use(requestLogging);
+app.use(trackRequest());
 
 // Security middleware
 app.use(configureHelmet());
@@ -151,7 +153,7 @@ app.get('/debug/routes', (req, res) => {
   const routes = [
     'GET / - API information',
     'GET /health - Health check', 
-    'GET /api-docs - Swagger API Documentation (main)',
+    'GET /api-docs - Swagger API Documentation',
     'GET /api-docs-working - Working endpoint test',
     'GET /api-docs-simple - Simple API docs test',
     'GET /debug/swagger - Swagger configuration debug',
@@ -161,6 +163,11 @@ app.get('/debug/routes', (req, res) => {
     'GET /api/twilio/status - Twilio status',
     'GET /api/admin/backup/list - List backups (requires auth)',
     'GET /api/logging/metrics - Logging metrics (requires auth)',
+    'GET /api/performance/metrics - Performance metrics',
+    'GET /api/performance/slow-requests - Slow requests analysis',
+    'GET /api/performance/top-routes - Most accessed routes',
+    'GET /api/performance/health - Performance health check',
+    'POST /api/performance/reset - Reset performance metrics',
     'POST /webhooks/twilio/whatsapp - WhatsApp webhook',
     'GET /webhooks/status - Webhook status'
   ];

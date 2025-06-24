@@ -201,6 +201,10 @@ const options = {
         name: 'Logging',
         description: 'Logging system management and metrics',
       },
+      {
+        name: 'Performance',
+        description: 'Application performance monitoring and metrics',
+      },
     ],
   },
   apis: ['./src/routes/*.js', './src/controllers/*.js', './src/modules/*.js'],
