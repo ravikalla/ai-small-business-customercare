@@ -9,32 +9,25 @@ A Node.js application that enables small businesses to create AI-powered WhatsAp
 ### How It Works - Simple Example
 
 **Step 1: Business Setup** *(Business Owner's WhatsApp)*
-```
-Business Owner → Their Business WhatsApp: Hi, I want to set up AI for my restaurant "Indian PizzaHut"
-AI Assistant → Business Owner: Hello! I'll help you set up your AI assistant. Tell me about your business.
 
-Business Owner → Their Business WhatsApp: We are a restaurant. We're open 9AM to 10PM daily. 
-                                         We serve Indian-style pizzas and fusion dishes.
-Business Owner → Their Business WhatsApp: [Uploads menu PDF]
-AI Assistant → Business Owner: Perfect! Your menu and business info have been saved. 
-                               Your AI assistant is now ready to help customers!
-```
+| Who | Message |
+|-----|---------|
+| **Business Owner:** | Hi, I want to set up AI for my restaurant "Indian PizzaHut" |
+| **AI Assistant:** | Hello! I'll help you set up your AI assistant. Tell me about your business. |
+| **Business Owner:** | We are a restaurant. We're open 9AM to 10PM daily. We serve Indian-style pizzas and fusion dishes. |
+| **Business Owner:** | [Uploads menu PDF] |
+| **AI Assistant:** | Perfect! Your menu and business info have been saved. Your AI assistant is now ready to help customers! |
 
 **Step 2: Customer Experience** *(Customer's WhatsApp)*
-```
-Customer → Indian PizzaHut WhatsApp: Hi! What breakfast options do you have?
-Indian PizzaHut AI → Customer: Good morning! We serve 'Pani Puri Pizza' and 'Masala Dosa Pizza' 
-                               between 9AM-11AM. Our breakfast menu includes Indian fusion items 
-                               perfect for morning cravings. Would you like to see our full menu?
 
-Customer → Indian PizzaHut WhatsApp: What are your hours?
-Indian PizzaHut AI → Customer: We're open daily from 9:00 AM to 10:00 PM. 
-                               You can place orders anytime during these hours!
-
-Customer → Indian PizzaHut WhatsApp: Do you deliver to downtown?
-Indian PizzaHut AI → Customer: Yes! We deliver to downtown within 30 minutes. 
-                               Delivery fee is ₹50 for orders under ₹500.
-```
+| Who | Message |
+|-----|---------|
+| **Customer:** | Hi! What breakfast options do you have? |
+| **PizzaHut AI:** | Good morning! We serve 'Pani Puri Pizza' and 'Masala Dosa Pizza' between 9AM-11AM. Our breakfast menu includes Indian fusion items perfect for morning cravings. Would you like to see our full menu? |
+| **Customer:** | What are your hours? |
+| **PizzaHut AI:** | We're open daily from 9:00 AM to 10:00 PM. You can place orders anytime during these hours! |
+| **Customer:** | Do you deliver to downtown? |
+| **PizzaHut AI:** | Yes! We deliver to downtown within 30 minutes. Delivery fee is $5 for orders under $50. |
 
 **Key Benefits:**
 - **Zero Training Required**: Customers use natural language, no special commands needed
