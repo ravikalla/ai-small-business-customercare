@@ -6,6 +6,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const config = require('../config');
 const logger = require('./utils/logger');
 const database = require('./config/database');
 const vectorService = require('./services/vectorService');
@@ -18,9 +19,12 @@ const knowledgeService = require('./services/knowledgeService');
 const aiService = require('./services/aiService');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+// Use configuration system
+const appConfig = config.get('app');
+const securityConfig = config.get('security');
+
+app.use(cors(securityConfig.cors));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -830,9 +834,9 @@ process.on('SIGINT', async () => {
 });
 
 // Start the server
-app.listen(PORT, async () => {
-    logger.success(`[SERVER] Server running on port ${PORT}`);
-    logger.info(`[SERVER] Environment: ${process.env.NODE_ENV || 'development'}`);
+app.listen(appConfig.port, async () => {
+    logger.success(`[SERVER] Server running on port ${appConfig.port}`);
+    logger.info(`[SERVER] Environment: ${config.getEnvironment()}`);
     
     // Initialize services after server starts
     await initializeServices();
