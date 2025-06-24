@@ -67,17 +67,15 @@ app.use(cors(securityConfig.cors));
 // Input sanitization
 app.use(sanitizeInput);
 
-// API Documentation with Swagger - Simple direct setup
+// API Documentation with Swagger - Working setup
 logger.info('Setting up Swagger documentation...');
 
-// Direct route setup for Swagger UI
-app.get('/api-docs', (req, res, next) => {
-  logger.info(`[SWAGGER] Direct route hit: ${req.originalUrl}`);
-  next();
-}, swaggerUi.serve[0], swaggerUi.setup(specs, swaggerOptions));
+// Working Swagger setup using proper middleware chain
+app.get('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
 
-// Alternative setup method
-app.use('/api-docs-alt', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
+// Alternative method for comparison
+app.use('/api-docs-alt', swaggerUi.serve);
+app.get('/api-docs-alt', swaggerUi.setup(specs, swaggerOptions));
 
 logger.info('Swagger documentation setup complete');
 
