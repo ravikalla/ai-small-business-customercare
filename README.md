@@ -6,14 +6,41 @@ A Node.js application that enables small businesses to create AI-powered WhatsAp
 
 ## Features
 
-### Core Functionality
-- **WhatsApp Integration**: Seamless integration with Twilio for WhatsApp messaging
-- **AI-Powered Responses**: Uses OpenAI GPT models for intelligent customer interactions
-- **Knowledge Base Management**: Businesses can add, manage, and search their custom knowledge
-- **Vector Search**: Efficient similarity search using Pinecone vector database
-- **Multi-Business Support**: Single platform supporting multiple businesses
-- **Real-time Processing**: Instant responses to customer queries
-- **Backup System**: Automated data backup and export capabilities
+### How It Works - Simple Example
+
+**Step 1: Business Setup** *(Business Owner's WhatsApp)*
+```
+Business Owner → Their Business WhatsApp: Hi, I want to set up AI for my restaurant "Indian PizzaHut"
+AI Assistant → Business Owner: Hello! I'll help you set up your AI assistant. Tell me about your business.
+
+Business Owner → Their Business WhatsApp: We are a restaurant. We're open 9AM to 10PM daily. 
+                                         We serve Indian-style pizzas and fusion dishes.
+Business Owner → Their Business WhatsApp: [Uploads menu PDF]
+AI Assistant → Business Owner: Perfect! Your menu and business info have been saved. 
+                               Your AI assistant is now ready to help customers!
+```
+
+**Step 2: Customer Experience** *(Customer's WhatsApp)*
+```
+Customer → Indian PizzaHut WhatsApp: Hi! What breakfast options do you have?
+Indian PizzaHut AI → Customer: Good morning! We serve 'Pani Puri Pizza' and 'Masala Dosa Pizza' 
+                               between 9AM-11AM. Our breakfast menu includes Indian fusion items 
+                               perfect for morning cravings. Would you like to see our full menu?
+
+Customer → Indian PizzaHut WhatsApp: What are your hours?
+Indian PizzaHut AI → Customer: We're open daily from 9:00 AM to 10:00 PM. 
+                               You can place orders anytime during these hours!
+
+Customer → Indian PizzaHut WhatsApp: Do you deliver to downtown?
+Indian PizzaHut AI → Customer: Yes! We deliver to downtown within 30 minutes. 
+                               Delivery fee is ₹50 for orders under ₹500.
+```
+
+**Key Benefits:**
+- **Zero Training Required**: Customers use natural language, no special commands needed
+- **Instant Setup**: Register your business and upload knowledge in minutes  
+- **24/7 Availability**: Your AI assistant never sleeps, never takes breaks
+- **Cost Savings**: Reduce customer service staff while improving response times
 
 ### Quality Assurance & Monitoring
 - **Performance Monitoring**: Real-time metrics and health checks ([View Metrics](http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/metrics))
@@ -90,31 +117,13 @@ curl -X POST http://localhost:3000/api/knowledge/search \
 2. Example: `!business restaurant123 What are your opening hours?`
 3. Get AI-powered responses from business knowledge base
 
-## API Endpoints
+## API Documentation
 
-### Core API
-- `GET /health` - Application health check
-- `GET /` - API information and status
-- `POST /api/businesses` - Register a new business
-- `GET /api/businesses` - List all businesses
+The application provides comprehensive API documentation through Swagger UI:
 
-### Knowledge Base
-- `POST /api/knowledge/upload` - Upload business documents
-- `GET /api/knowledge/business/:businessId/documents` - List business documents
-- `POST /api/knowledge/search` - Search knowledge base
+**Interactive API Documentation:** [http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api-docs](http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api-docs)
 
-### Monitoring & Performance
-- `GET /api/performance/metrics` - Real-time performance metrics
-- `GET /api/performance/health` - Performance health check
-- `GET /api/performance/slow-requests` - Analyze slow requests
-- `GET /api/performance/top-routes` - Most accessed routes
-
-### Documentation
-- `GET /api-docs` - Interactive Swagger API documentation
-- `GET /debug/routes` - List all available endpoints
-
-### Webhooks
-- `POST /webhooks/twilio/whatsapp` - WhatsApp message webhook
+All endpoints, request/response schemas, and example usage are documented in the Swagger interface.
 
 ## Monitoring & Health Checks
 

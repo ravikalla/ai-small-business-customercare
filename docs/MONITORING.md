@@ -41,6 +41,9 @@ http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/logs
 
 ### One-Minute Health Check
 
+<details>
+<summary>Click to expand health check commands</summary>
+
 ```bash
 # Quick health status
 curl -s http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/health | jq '.status'
@@ -49,6 +52,8 @@ curl -s http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/health | jq '.status'
 curl -s http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/health | jq '.health.status'
 ```
 
+</details>
+
 ## Built-in Monitoring Endpoints
 
 ### 1. Application Health Check
@@ -56,6 +61,10 @@ curl -s http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/healt
 **Endpoint:** `GET /health`
 
 **Response Example:**
+
+<details>
+<summary>Click to expand JSON response</summary>
+
 ```json
 {
   "status": "healthy",
@@ -70,6 +79,8 @@ curl -s http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/healt
   }
 }
 ```
+
+</details>
 
 **Monitoring:** Check every 1-2 minutes for service availability.
 
@@ -86,6 +97,10 @@ curl -s http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/healt
 - **Top Routes:** Most accessed endpoints
 
 **Response Example:**
+
+<details>
+<summary>Click to expand JSON response</summary>
+
 ```json
 {
   "success": true,
@@ -118,6 +133,8 @@ curl -s http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/healt
 }
 ```
 
+</details>
+
 ### 3. Performance Health Check
 
 **Endpoint:** `GET /api/performance/health`
@@ -128,6 +145,10 @@ curl -s http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/healt
 - **critical:** Immediate attention required
 
 **Response Example:**
+
+<details>
+<summary>Click to expand JSON response</summary>
+
 ```json
 {
   "success": true,
@@ -150,6 +171,8 @@ curl -s http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/healt
   }
 }
 ```
+
+</details>
 
 ### 4. Slow Requests Analysis
 
@@ -203,6 +226,9 @@ curl -s http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/healt
 
 Monitor these application-specific metrics:
 
+<details>
+<summary>Click to expand business monitoring commands</summary>
+
 ```bash
 # Active businesses count
 curl -s http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/businesses | jq '.businesses | length'
@@ -211,11 +237,16 @@ curl -s http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/businesses | jq '
 curl -s http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/twilio/status | jq '.status'
 ```
 
+</details>
+
 ## Health Checks
 
 ### Automated Health Check Script
 
 Create `scripts/health-check.sh`:
+
+<details>
+<summary>Click to expand health check script</summary>
 
 ```bash
 #!/bin/bash
@@ -334,7 +365,12 @@ main() {
 main
 ```
 
+</details>
+
 ### Cron Job Setup
+
+<details>
+<summary>Click to expand cron job configuration</summary>
 
 ```bash
 # Add to crontab (crontab -e)
@@ -349,11 +385,17 @@ main
 0 9 * * 1 /path/to/scripts/weekly-report.sh
 ```
 
+</details>
+
 ## Log Monitoring
 
 ### Log Locations
 
 #### PM2 Logs (on EC2 server)
+
+<details>
+<summary>Click to expand PM2 log commands</summary>
+
 ```bash
 # Real-time application logs
 pm2 logs sbc-system --timestamp
@@ -364,6 +406,8 @@ pm2 logs sbc-system --err
 # Specific number of lines
 pm2 logs sbc-system --lines 100
 ```
+
+</details>
 
 #### AWS CloudWatch Log Groups
 - `/aws/ec2/sbc-system/application` - Application logs
@@ -382,6 +426,9 @@ pm2 logs sbc-system --lines 100
 
 ### Log Analysis Commands
 
+<details>
+<summary>Click to expand log analysis commands</summary>
+
 ```bash
 # SSH to EC2 instance
 ssh -i your-key.pem ubuntu@ec2-54-86-8-77.compute-1.amazonaws.com
@@ -399,6 +446,8 @@ pm2 logs sbc-system --lines 100 | grep "WEBHOOK"
 pm2 logs sbc-system --lines 100 | grep "STARTUP"
 ```
 
+</details>
+
 ## Automated Monitoring Setup
 
 ### 1. Uptime Monitoring with UptimeRobot
@@ -413,6 +462,9 @@ pm2 logs sbc-system --lines 100 | grep "STARTUP"
 ### 2. Performance Monitoring Script
 
 Create `scripts/performance-monitor.sh`:
+
+<details>
+<summary>Click to expand performance monitoring script</summary>
 
 ```bash
 #!/bin/bash
@@ -456,9 +508,14 @@ while true; do
 done
 ```
 
+</details>
+
 ### 3. Daily Report Script
 
 Create `scripts/daily-report.sh`:
+
+<details>
+<summary>Click to expand daily report script</summary>
 
 ```bash
 #!/bin/bash
@@ -505,9 +562,14 @@ EOF
 generate_report
 ```
 
+</details>
+
 ## AWS CloudWatch Integration
 
 ### CloudWatch Metrics Setup
+
+<details>
+<summary>Click to expand CloudWatch metrics configuration</summary>
 
 ```bash
 # Install CloudWatch agent on EC2
@@ -529,7 +591,12 @@ aws logs put-metric-filter \
     metricName=PerformanceWarnings,metricNamespace=SBC/Application,metricValue=1
 ```
 
+</details>
+
 ### CloudWatch Alarms
+
+<details>
+<summary>Click to expand CloudWatch alarms configuration</summary>
 
 ```bash
 # High error rate alarm
@@ -570,9 +637,14 @@ aws cloudwatch put-metric-alarm \
   --evaluation-periods 1
 ```
 
+</details>
+
 ### CloudWatch Dashboard
 
 Create a custom dashboard to visualize metrics:
+
+<details>
+<summary>Click to expand CloudWatch dashboard configuration</summary>
 
 ```json
 {
@@ -603,6 +675,8 @@ Create a custom dashboard to visualize metrics:
 }
 ```
 
+</details>
+
 ## Alert Configuration
 
 ### Alert Levels and Actions
@@ -632,6 +706,10 @@ Create a custom dashboard to visualize metrics:
 ### Alert Notification Channels
 
 #### Email Alerts
+
+<details>
+<summary>Click to expand email configuration</summary>
+
 ```bash
 # Configure mail on EC2 instance
 sudo apt-get install mailutils
@@ -640,7 +718,13 @@ sudo apt-get install mailutils
 echo "Test alert from SBC monitoring" | mail -s "Test Alert" admin@yourcompany.com
 ```
 
+</details>
+
 #### Slack Integration
+
+<details>
+<summary>Click to expand Slack integration</summary>
+
 ```bash
 # Slack webhook URL
 SLACK_WEBHOOK="https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
@@ -654,7 +738,13 @@ send_slack_alert() {
 }
 ```
 
+</details>
+
 #### SMS Alerts (via AWS SNS)
+
+<details>
+<summary>Click to expand SMS alerts configuration</summary>
+
 ```bash
 # Create SNS topic
 aws sns create-topic --name sbc-alerts
@@ -671,11 +761,16 @@ aws sns publish \
     --message "SBC Critical Alert: Service is down"
 ```
 
+</details>
+
 ## Load Testing & Performance
 
 ### Running Load Tests
 
 The application includes comprehensive load testing tools:
+
+<details>
+<summary>Click to expand load testing commands</summary>
 
 ```bash
 # Navigate to load test directory
@@ -693,19 +788,33 @@ npm run load:k6:heavy      # 100 users, 10 minutes
 npm run load:artillery
 ```
 
+</details>
+
 ### Performance Testing Schedule
 
 #### Weekly Performance Tests
+
+<details>
+<summary>Click to expand weekly test configuration</summary>
+
 ```bash
 # Add to crontab
 0 2 * * 1 cd /path/to/sbc && npm run load:k6:light >> /var/log/sbc-load-test.log 2>&1
 ```
 
+</details>
+
 #### Pre-deployment Tests
+
+<details>
+<summary>Click to expand pre-deployment testing</summary>
+
 ```bash
 # Run before major deployments
 ./tests/load/run-load-tests.sh production
 ```
+
+</details>
 
 ### Performance Benchmarks
 
@@ -726,6 +835,10 @@ Heavy Load:    100 req/sec (peak usage)
 ```
 
 #### Load Test Results Analysis
+
+<details>
+<summary>Click to expand load test analysis commands</summary>
+
 ```bash
 # View load test results
 ls -la tests/load/results/
@@ -736,6 +849,8 @@ jq '.metrics.http_req_duration.avg' tests/load/results/k6_light_production_*.jso
 # View Artillery HTML report
 open tests/load/results/artillery_production_*.html
 ```
+
+</details>
 
 ## Troubleshooting Guide
 
@@ -748,6 +863,10 @@ open tests/load/results/artillery_production_*.html
 - Performance health status: warning/critical
 
 **Investigation:**
+
+<details>
+<summary>Click to expand investigation commands</summary>
+
 ```bash
 # Check slow requests
 curl -s http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/slow-requests
@@ -758,6 +877,8 @@ top
 df -h
 free -m
 ```
+
+</details>
 
 **Solutions:**
 - Restart PM2 process: `pm2 restart sbc-system`
@@ -772,6 +893,10 @@ free -m
 - Failed requests in logs
 
 **Investigation:**
+
+<details>
+<summary>Click to expand error investigation commands</summary>
+
 ```bash
 # Check error logs
 pm2 logs sbc-system --err --lines 50
@@ -779,6 +904,8 @@ pm2 logs sbc-system --err --lines 50
 # Check specific error types
 curl -s http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/metrics | jq '.metrics.requests.byStatusCode'
 ```
+
+</details>
 
 **Solutions:**
 - Review error logs for patterns
@@ -793,6 +920,10 @@ curl -s http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/metri
 - Application restarts frequently
 
 **Investigation:**
+
+<details>
+<summary>Click to expand memory investigation commands</summary>
+
 ```bash
 # Check memory usage
 curl -s http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/metrics | jq '.metrics.memory'
@@ -801,6 +932,8 @@ curl -s http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/metri
 ssh ubuntu@ec2-54-86-8-77.compute-1.amazonaws.com
 free -m
 ```
+
+</details>
 
 **Solutions:**
 - Restart application: `pm2 restart sbc-system`
@@ -815,6 +948,10 @@ free -m
 - Application not responding
 
 **Investigation:**
+
+<details>
+<summary>Click to expand service investigation commands</summary>
+
 ```bash
 # Check PM2 status
 ssh ubuntu@ec2-54-86-8-77.compute-1.amazonaws.com
@@ -824,7 +961,13 @@ pm2 status
 pm2 logs sbc-system --lines 100
 ```
 
+</details>
+
 **Solutions:**
+
+<details>
+<summary>Click to expand service recovery commands</summary>
+
 ```bash
 # Restart application
 pm2 restart sbc-system
@@ -837,6 +980,8 @@ df -h  # Disk space
 free -m  # Memory
 top  # CPU usage
 ```
+
+</details>
 
 ### Emergency Response Procedures
 
