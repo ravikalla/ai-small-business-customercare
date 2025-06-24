@@ -88,16 +88,64 @@ app.get('/api-docs-simple', (req, res) => {
   `);
 });
 
-// Working Swagger UI endpoint with proper static asset handling
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
-  explorer: true,
-  swaggerOptions: {
-    docExpansion: 'list',
-    filter: true,
-    showRequestDuration: true,
-  },
-  customSiteTitle: 'Small Business Chatbot API Documentation'
-}));
+// Custom Swagger UI setup with explicit HTTP URLs
+app.use('/api-docs', swaggerUi.serve);
+app.get('/api-docs', (req, res) => {
+  const baseUrl = `http://${req.get('host')}/api-docs`;
+  
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Small Business Chatbot API Documentation</title>
+  <link rel="stylesheet" type="text/css" href="${baseUrl}/swagger-ui.css" />
+  <link rel="icon" type="image/png" href="${baseUrl}/favicon-32x32.png" sizes="32x32" />
+  <link rel="icon" type="image/png" href="${baseUrl}/favicon-16x16.png" sizes="16x16" />
+  <style>
+    html { box-sizing: border-box; overflow: -moz-scrollbars-vertical; overflow-y: scroll; }
+    *, *:before, *:after { box-sizing: inherit; }
+    body { margin:0; background: #fafafa; }
+    .swagger-ui .topbar { display: none }
+    .swagger-ui .info { margin: 20px 0 }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="${baseUrl}/swagger-ui-bundle.js"></script>
+  <script src="${baseUrl}/swagger-ui-standalone-preset.js"></script>
+  <script>
+    window.onload = function() {
+      const ui = SwaggerUIBundle({
+        url: '${baseUrl}/swagger.json',
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout",
+        docExpansion: 'list',
+        filter: true,
+        showRequestDuration: true
+      });
+    };
+  </script>
+</body>
+</html>`;
+  
+  res.setHeader('Content-Type', 'text/html');
+  res.send(html);
+});
+
+// Add JSON endpoint for Swagger specs
+app.get('/api-docs/swagger.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.json(specs);
+});
 
 // Simple working setup
 app.use('/api-docs-working', swaggerUi.serve);
