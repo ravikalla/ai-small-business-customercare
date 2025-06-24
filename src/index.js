@@ -86,15 +86,9 @@ app.get('/api-docs-simple', (req, res) => {
   `);
 });
 
-// Basic working Swagger endpoint
-app.get('/api-docs', (req, res) => {
-  logger.info('[SWAGGER] Main api-docs endpoint hit');
-  res.json({
-    message: 'Basic endpoint is working',
-    timestamp: new Date().toISOString(),
-    url: req.originalUrl
-  });
-});
+// Working Swagger UI endpoint
+app.use('/api-docs', swaggerUi.serve);
+app.get('/api-docs', swaggerUi.setup(specs, swaggerOptions));
 
 // Simple working setup
 app.use('/api-docs-working', swaggerUi.serve);
