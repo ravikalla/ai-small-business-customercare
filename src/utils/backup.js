@@ -63,6 +63,7 @@ class BackupManager {
       const stats = await fs.stat(backupPath);
       logger.success(
         `[BACKUP] Backup completed: ${backupPath} (${(stats.size / 1024 / 1024).toFixed(2)} MB)`
+      );
 
       // Cleanup old backups
       await this.cleanupOldBackups();
@@ -192,6 +193,7 @@ class BackupManager {
       const files = await fs.readdir(this.backupDir);
       const backupFiles = files.filter(
         file => file.startsWith('backup_') && file.endsWith('.json')
+      );
 
       const backups = [];
       for (const file of backupFiles) {
@@ -312,6 +314,7 @@ class BackupManager {
         allKnowledge[business.businessId] = await KnowledgeRepository.findByBusinessId(
           business.businessId
         );
+      }
 
       // Generate SQL statements
       let sqlContent = `-- Supabase Export for SBC Business Care System
@@ -364,7 +367,7 @@ class BackupManager {
       const stats = await fs.stat(exportPath);
       logger.success(
         `[BACKUP] Supabase export created: ${exportPath} (${(stats.size / 1024).toFixed(2)} KB)`
-
+      );
 
       return {
         success: true,
