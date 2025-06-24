@@ -6,17 +6,22 @@ A Node.js application that enables small businesses to create AI-powered WhatsAp
 
 ## Features
 
-### Module 1: Knowledge Base Management
-- Upload business documents (PDF, TXT, DOC, DOCX)
-- Automatic text extraction and processing
-- Vector storage using Pinecone
-- Document chunking for optimal retrieval
+### Core Functionality
+- **WhatsApp Integration**: Seamless integration with Twilio for WhatsApp messaging
+- **AI-Powered Responses**: Uses OpenAI GPT models for intelligent customer interactions
+- **Knowledge Base Management**: Businesses can add, manage, and search their custom knowledge
+- **Vector Search**: Efficient similarity search using Pinecone vector database
+- **Multi-Business Support**: Single platform supporting multiple businesses
+- **Real-time Processing**: Instant responses to customer queries
+- **Backup System**: Automated data backup and export capabilities
 
-### Module 2: WhatsApp AI Chatbot
-- WhatsApp Web integration
-- Natural language query processing
-- Context-aware responses using business knowledge
-- Multi-business support
+### Quality Assurance & Monitoring
+- **Performance Monitoring**: Real-time metrics and health checks ([View Metrics](http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/metrics))
+- **API Documentation**: Interactive Swagger UI documentation ([View API Docs](http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api-docs))
+- **Comprehensive Testing**: Unit tests and load testing suite
+- **Error Handling**: Robust error handling with structured logging
+- **Security**: Rate limiting, input validation, and security headers
+- **Automated Monitoring**: Health checks, alerts, and daily reports
 
 ## Setup
 
@@ -87,9 +92,67 @@ curl -X POST http://localhost:3000/api/knowledge/search \
 
 ## API Endpoints
 
+### Core API
+- `GET /health` - Application health check
+- `GET /` - API information and status
+- `POST /api/businesses` - Register a new business
+- `GET /api/businesses` - List all businesses
+
+### Knowledge Base
 - `POST /api/knowledge/upload` - Upload business documents
 - `GET /api/knowledge/business/:businessId/documents` - List business documents
 - `POST /api/knowledge/search` - Search knowledge base
+
+### Monitoring & Performance
+- `GET /api/performance/metrics` - Real-time performance metrics
+- `GET /api/performance/health` - Performance health check
+- `GET /api/performance/slow-requests` - Analyze slow requests
+- `GET /api/performance/top-routes` - Most accessed routes
+
+### Documentation
+- `GET /api-docs` - Interactive Swagger API documentation
+- `GET /debug/routes` - List all available endpoints
+
+### Webhooks
+- `POST /webhooks/twilio/whatsapp` - WhatsApp message webhook
+
+## Monitoring & Health Checks
+
+### Quick Health Check
+```bash
+curl http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/health
+```
+
+### Performance Monitoring
+- **Real-time Metrics**: [http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/metrics](http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/metrics)
+- **Performance Health**: [http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/health](http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/api/performance/health)
+- **Log Viewer**: [http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/logs](http://ec2-54-86-8-77.compute-1.amazonaws.com:3000/logs)
+
+### Automated Monitoring Scripts
+```bash
+# Health check
+./scripts/health-check.sh
+
+# Start continuous monitoring
+./scripts/performance-monitor.sh start
+
+# Generate daily report
+./scripts/daily-report.sh
+```
+
+### Load Testing
+```bash
+# Run load tests
+cd tests/load
+./run-load-tests.sh production
+
+# Specific load scenarios
+npm run load:k6:light
+npm run load:k6:medium
+npm run load:k6:heavy
+```
+
+For complete monitoring documentation, see [docs/MONITORING.md](./docs/MONITORING.md).
 
 ## Architecture
 
