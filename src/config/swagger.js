@@ -13,7 +13,8 @@ const options = {
     info: {
       title: 'Small Business Chatbot API',
       version: packageJson.version,
-      description: 'WhatsApp AI Business Assistant API for managing businesses, knowledge bases, and customer interactions',
+      description:
+        'WhatsApp AI Business Assistant API for managing businesses, knowledge bases, and customer interactions',
       contact: {
         name: 'Ravi Kalla',
         email: 'ravi2523096+sbc@gmail.com',
@@ -196,13 +197,13 @@ const options = {
         name: 'Twilio',
         description: 'Twilio service integration',
       },
+      {
+        name: 'Logging',
+        description: 'Logging system management and metrics',
+      },
     ],
   },
-  apis: [
-    './src/routes/*.js',
-    './src/controllers/*.js',
-    './src/modules/*.js',
-  ],
+  apis: ['./src/routes/*.js', './src/controllers/*.js', './src/modules/*.js'],
 };
 
 const specs = swaggerJSDoc(options);

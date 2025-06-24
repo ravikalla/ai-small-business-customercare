@@ -36,15 +36,24 @@ const {
   limitRequestSize,
 } = require('./middleware/security');
 const { sanitizeInput } = require('./middleware/validation');
+const { 
+  requestLogging, 
+  errorLogging, 
+  securityLogging 
+} = require('./middleware/logging');
 
 // Use configuration system
 const appConfig = config.get('app');
 const securityConfig = config.get('security');
 
+// Request logging middleware (early in the stack)
+app.use(requestLogging);
+
 // Security middleware
 app.use(configureHelmet());
 app.use(handlePreflight);
 app.use(securityLogger);
+app.use(securityLogging);
 app.use(generalRateLimiter);
 app.use(limitRequestSize('10mb'));
 
@@ -612,6 +621,7 @@ process.on('SIGINT', async () => {
 
 // Error handling middleware (must be last)
 app.use(handleNotFound);
+app.use(errorLogging);
 app.use(globalErrorHandler);
 
 // Start the server
