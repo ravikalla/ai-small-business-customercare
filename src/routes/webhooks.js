@@ -19,13 +19,166 @@ class WebhookHandler {
   }
 
   setupRoutes() {
-    // Twilio WhatsApp webhook endpoint
+    /**
+     * @swagger
+     * /webhooks/twilio/whatsapp:
+     *   post:
+     *     tags: [Webhooks]
+     *     summary: Twilio WhatsApp webhook handler
+     *     description: Handles incoming WhatsApp messages from Twilio and routes them to appropriate business handlers
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/x-www-form-urlencoded:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               From:
+     *                 type: string
+     *                 description: Sender's WhatsApp number
+     *                 example: "whatsapp:+15551234567"
+     *               To:
+     *                 type: string
+     *                 description: Business WhatsApp number
+     *                 example: "whatsapp:+15559876543"
+     *               Body:
+     *                 type: string
+     *                 description: Message content
+     *                 example: "What are your business hours?"
+     *               MessageSid:
+     *                 type: string
+     *                 description: Twilio message identifier
+     *                 example: "SMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+     *               NumMedia:
+     *                 type: string
+     *                 description: Number of media attachments
+     *                 example: "0"
+     *               ProfileName:
+     *                 type: string
+     *                 description: Sender's profile name
+     *                 example: "John Doe"
+     *     responses:
+     *       200:
+     *         description: Webhook processed successfully
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: "OK"
+     *       403:
+     *         description: Invalid webhook signature
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: "Forbidden"
+     *       500:
+     *         description: Internal server error
+     *         content:
+     *           text/plain:
+     *             schema:
+     *               type: string
+     *               example: "Internal Server Error"
+     */
     router.post('/twilio/whatsapp', this.handleTwilioWebhook.bind(this));
 
-    // Webhook status endpoint
+    /**
+     * @swagger
+     * /webhooks/status:
+     *   get:
+     *     tags: [Webhooks]
+     *     summary: Get webhook service status
+     *     description: Retrieve the current status of webhook endpoints and Twilio integration
+     *     responses:
+     *       200:
+     *         description: Webhook status retrieved successfully
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 status:
+     *                   type: string
+     *                   example: "ok"
+     *                 timestamp:
+     *                   type: string
+     *                   format: date-time
+     *                 twilio:
+     *                   type: object
+     *                   properties:
+     *                     isConnected:
+     *                       type: boolean
+     *                       example: true
+     *                     messagesSent:
+     *                       type: integer
+     *                       example: 150
+     *                     messagesReceived:
+     *                       type: integer
+     *                       example: 98
+     *                 webhooks:
+     *                   type: object
+     *                   properties:
+     *                     enabled:
+     *                       type: boolean
+     *                       example: true
+     *                     endpoints:
+     *                       type: array
+     *                       items:
+     *                         type: string
+     *                       example: ["/webhooks/twilio/whatsapp"]
+     *       500:
+     *         description: Failed to retrieve webhook status
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/Error'
+     */
     router.get('/status', this.getWebhookStatus.bind(this));
 
-    // Test webhook endpoint
+    /**
+     * @swagger
+     * /webhooks/test:
+     *   post:
+     *     tags: [Webhooks]
+     *     summary: Test webhook endpoint
+     *     description: Test endpoint to verify webhook functionality
+     *     requestBody:
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               message:
+     *                 type: string
+     *                 description: Test message
+     *                 example: "Test webhook"
+     *     responses:
+     *       200:
+     *         description: Test webhook successful
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 status:
+     *                   type: string
+     *                   example: "ok"
+     *                 message:
+     *                   type: string
+     *                   example: "Webhook is working"
+     *                 timestamp:
+     *                   type: string
+     *                   format: date-time
+     *                 receivedData:
+     *                   type: object
+     *                   description: Echo of received request data
+     *       500:
+     *         description: Test webhook failed
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/Error'
+     */
     router.post('/test', this.handleTestWebhook.bind(this));
   }
 

@@ -63,6 +63,8 @@
     "nyc": "^15.1.0",
     "prettier": "^3.6.0",
     "sinon": "^17.0.1",
-    "supertest": "^6.3.4"
+    "supertest": "^6.3.4",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   }
 }
