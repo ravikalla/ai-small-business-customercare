@@ -86,33 +86,14 @@ app.get('/api-docs-simple', (req, res) => {
   `);
 });
 
-// Manual Swagger UI setup with proper error handling
+// Basic working Swagger endpoint
 app.get('/api-docs', (req, res) => {
   logger.info('[SWAGGER] Main api-docs endpoint hit');
-  try {
-    // Check if generateHTML function exists
-    if (typeof swaggerUi.generateHTML === 'function') {
-      const html = swaggerUi.generateHTML(specs, swaggerOptions.swaggerOptions);
-      res.send(html);
-    } else {
-      // Fallback to basic setup
-      logger.info('[SWAGGER] Using fallback setup method');
-      const setupHtml = swaggerUi.setup(specs, swaggerOptions);
-      if (typeof setupHtml === 'function') {
-        setupHtml(req, res);
-      } else {
-        res.json({ error: 'Swagger UI setup failed', available_methods: Object.keys(swaggerUi) });
-      }
-    }
-  } catch (error) {
-    logger.error('[SWAGGER] Error in main endpoint:', error);
-    res.status(500).json({ 
-      error: 'Failed to generate Swagger UI', 
-      details: error.message,
-      stack: error.stack,
-      swaggerUi_methods: Object.keys(swaggerUi)
-    });
-  }
+  res.json({
+    message: 'Basic endpoint is working',
+    timestamp: new Date().toISOString(),
+    url: req.originalUrl
+  });
 });
 
 // Simple working setup
