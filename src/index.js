@@ -86,23 +86,45 @@ app.get('/api-docs-simple', (req, res) => {
   `);
 });
 
-// Manual Swagger UI setup
+// Manual Swagger UI setup with proper error handling
 app.get('/api-docs', (req, res) => {
   logger.info('[SWAGGER] Main api-docs endpoint hit');
   try {
-    const html = swaggerUi.generateHTML(specs, swaggerOptions.swaggerOptions);
-    res.send(html);
+    // Check if generateHTML function exists
+    if (typeof swaggerUi.generateHTML === 'function') {
+      const html = swaggerUi.generateHTML(specs, swaggerOptions.swaggerOptions);
+      res.send(html);
+    } else {
+      // Fallback to basic setup
+      logger.info('[SWAGGER] Using fallback setup method');
+      const setupHtml = swaggerUi.setup(specs, swaggerOptions);
+      if (typeof setupHtml === 'function') {
+        setupHtml(req, res);
+      } else {
+        res.json({ error: 'Swagger UI setup failed', available_methods: Object.keys(swaggerUi) });
+      }
+    }
   } catch (error) {
-    logger.error('[SWAGGER] Error generating HTML:', error);
-    res.status(500).json({ error: 'Failed to generate Swagger UI', details: error.message });
+    logger.error('[SWAGGER] Error in main endpoint:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate Swagger UI', 
+      details: error.message,
+      stack: error.stack,
+      swaggerUi_methods: Object.keys(swaggerUi)
+    });
   }
 });
 
-// Alternative using middleware
-app.get('/api-docs-alt', (req, res, next) => {
-  logger.info('[SWAGGER] Alternative endpoint hit');
-  next();
-}, swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
+// Simple working setup
+app.use('/api-docs-working', swaggerUi.serve);
+app.get('/api-docs-working', (req, res) => {
+  logger.info('[SWAGGER] Working endpoint hit');
+  res.json({
+    message: 'This endpoint is responding',
+    specs_available: !!specs,
+    next_step: 'Try manual Swagger UI setup'
+  });
+});
 
 logger.info('Swagger documentation setup complete');
 
@@ -155,7 +177,7 @@ app.get('/debug/routes', (req, res) => {
     'GET / - API information',
     'GET /health - Health check', 
     'GET /api-docs - Swagger API Documentation (main)',
-    'GET /api-docs-alt - Swagger API Documentation (alternative)',
+    'GET /api-docs-working - Working endpoint test',
     'GET /api-docs-simple - Simple API docs test',
     'GET /debug/swagger - Swagger configuration debug',
     'GET /debug/swagger-test - Swagger components test',
