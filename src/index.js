@@ -88,9 +88,20 @@ app.get('/api-docs-simple', (req, res) => {
   `);
 });
 
-// Custom Swagger UI setup with explicit HTTP URLs
-app.use('/api-docs', swaggerUi.serve);
+// Custom Swagger UI setup with explicit HTTP URLs and disabled security headers
+app.use('/api-docs', (req, res, next) => {
+  // Remove security headers that force HTTPS upgrades for Swagger UI
+  res.removeHeader('Strict-Transport-Security');
+  res.removeHeader('Content-Security-Policy');
+  res.setHeader('Content-Security-Policy', "default-src 'self' 'unsafe-inline' 'unsafe-eval' http: data:; img-src 'self' data: http:; script-src 'self' 'unsafe-inline' 'unsafe-eval' http:; style-src 'self' 'unsafe-inline' http:;");
+  next();
+}, swaggerUi.serve);
+
 app.get('/api-docs', (req, res) => {
+  // Remove HTTPS upgrade headers for this specific route
+  res.removeHeader('Strict-Transport-Security');
+  res.removeHeader('upgrade-insecure-requests');
+  
   const baseUrl = `http://${req.get('host')}/api-docs`;
   
   const html = `
@@ -99,6 +110,7 @@ app.get('/api-docs', (req, res) => {
 <head>
   <meta charset="UTF-8">
   <title>Small Business Chatbot API Documentation</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' http: data:; img-src 'self' data: http:; script-src 'self' 'unsafe-inline' 'unsafe-eval' http:; style-src 'self' 'unsafe-inline' http:;">
   <link rel="stylesheet" type="text/css" href="${baseUrl}/swagger-ui.css" />
   <link rel="icon" type="image/png" href="${baseUrl}/favicon-32x32.png" sizes="32x32" />
   <link rel="icon" type="image/png" href="${baseUrl}/favicon-16x16.png" sizes="16x16" />
