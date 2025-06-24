@@ -40,6 +40,7 @@ module.exports = {
         },
       },
     },
+  },
 
   ai: {
     openai: {
@@ -56,6 +57,7 @@ module.exports = {
       environment: process.env.PINECONE_ENVIRONMENT,
       indexName: process.env.PINECONE_INDEX_NAME,
     },
+  },
 
   database: {
     supabase: {
@@ -64,6 +66,7 @@ module.exports = {
       retryAttempts: 5,
       retryDelay: 2000,
     },
+  },
 
   messaging: {
     twilio: {
@@ -71,6 +74,7 @@ module.exports = {
       authToken: process.env.TWILIO_AUTH_TOKEN,
       whatsappNumber: process.env.TWILIO_WHATSAPP_NUMBER,
     },
+  },
 
   backup: {
     enabled: process.env.BACKUP_ENABLED === 'true',

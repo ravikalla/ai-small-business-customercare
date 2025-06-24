@@ -67,6 +67,7 @@ module.exports = {
       authToken: process.env.TWILIO_AUTH_TOKEN,
       whatsappNumber: process.env.TWILIO_WHATSAPP_NUMBER,
     },
+  },
 
   backup: {
     enabled: process.env.BACKUP_ENABLED === 'true',
