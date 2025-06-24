@@ -1,0 +1,181 @@
+# Artillery Load Testing Configuration
+# Author: Ravi Kalla <ravi2523096+sbc@gmail.com>
+#
+# Usage:
+# npm install -g artillery
+# artillery run tests/load/artillery-load-test.yml
+# artillery run --environment production tests/load/artillery-load-test.yml
+
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 300
+      arrivalRate: 10
+      name: "Steady load"
+    - duration: 60
+      arrivalRate: 20
+      name: "Peak load"
+    - duration: 60
+      arrivalRate: 5
+      name: "Cool down"
+  
+  # Environment configurations
+  environments:
+    local:
+      target: 'http://localhost:3000'
+      phases:
+        - duration: 30
+          arrivalRate: 2
+        - duration: 60
+          arrivalRate: 5
+        - duration: 30
+          arrivalRate: 2
+    
+    production:
+      target: 'http://ec2-54-86-8-77.compute-1.amazonaws.com:3000'
+      phases:
+        - duration: 60
+          arrivalRate: 10
+        - duration: 300
+          arrivalRate: 25
+        - duration: 120
+          arrivalRate: 50
+        - duration: 60
+          arrivalRate: 10
+
+  # Performance thresholds
+  ensure:
+    - http.response_time.p99: 2000
+    - http.response_time.p95: 1000
+    - http.response_time.median: 500
+    - http.codes.200: 95  # 95% success rate
+    - http.request_rate: 10  # At least 10 req/sec
+
+  # Load testing payload
+  payload:
+    - path: './test-data.csv'
+      fields:
+        - businessName
+        - ownerPhone
+        - description
+
+# Test scenarios
+scenarios:
+  - name: "API Health and Info"
+    weight: 30
+    flow:
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200
+            - hasProperty: "status"
+      - think: 1
+      - get:
+          url: "/"
+          expect:
+            - statusCode: 200
+
+  - name: "Business Operations"
+    weight: 25
+    flow:
+      - get:
+          url: "/api/businesses"
+          expect:
+            - statusCode: 200
+      - think: 2
+      - post:
+          url: "/api/businesses"
+          headers:
+            Content-Type: "application/json"
+          json:
+            businessName: "{{ businessName }}-{{ $randomString() }}"
+            ownerPhone: "+1555{{ $randomInt(1000000, 9999999) }}"
+            description: "Load test business {{ $timestamp() }}"
+          expect:
+            - statusCode: [200, 201]
+      - think: 1
+
+  - name: "Performance Monitoring"
+    weight: 15
+    flow:
+      - get:
+          url: "/api/performance/metrics"
+          expect:
+            - statusCode: 200
+            - hasProperty: "metrics"
+      - think: 2
+      - get:
+          url: "/api/performance/health"
+          expect:
+            - statusCode: 200
+            - hasProperty: "health"
+
+  - name: "Twilio Integration"
+    weight: 10
+    flow:
+      - get:
+          url: "/api/twilio/status"
+          expect:
+            - statusCode: 200
+
+  - name: "Documentation and Debug"
+    weight: 10
+    flow:
+      - get:
+          url: "/debug/routes"
+          expect:
+            - statusCode: 200
+      - think: 1
+      - get:
+          url: "/api-docs"
+          expect:
+            - statusCode: 200
+
+  - name: "Admin Functions"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/admin/backup/list"
+          auth:
+            username: "admin"
+            password: "admin123"
+          expect:
+            - statusCode: [200, 401]  # May fail auth, that's ok
+
+  - name: "Error Handling Test"
+    weight: 5
+    flow:
+      - get:
+          url: "/nonexistent-endpoint"
+          expect:
+            - statusCode: 404
+      - get:
+          url: "/api/businesses/invalid-id"
+          expect:
+            - statusCode: [400, 404]
+
+# Custom functions for data generation
+before:
+  flow:
+    - log: "Starting load test..."
+    - get:
+        url: "/health"
+        capture:
+          - json: "$.status"
+            as: "healthStatus"
+
+after:
+  flow:
+    - log: "Load test completed"
+    - get:
+        url: "/api/performance/metrics"
+        capture:
+          - json: "$.metrics.requests.total"
+            as: "totalRequests"
+          - json: "$.metrics.response_times.avg"
+            as: "avgResponseTime"
+          - json: "$.metrics.errorRate"
+            as: "errorRate"

@@ -28,7 +28,13 @@
     "code:fix": "npm run lint:fix && npm run format",
     "coverage": "jest --coverage",
     "coverage:integration": "nyc cucumber-js",
-    "audit:security": "npm audit --audit-level=moderate"
+    "audit:security": "npm audit --audit-level=moderate",
+    "load:test": "cd tests/load && ./run-load-tests.sh production",
+    "load:test:local": "cd tests/load && ./run-load-tests.sh local",
+    "load:k6:light": "k6 run --env SCENARIO=light --env ENVIRONMENT=production tests/load/k6-load-test.js",
+    "load:k6:medium": "k6 run --env SCENARIO=medium --env ENVIRONMENT=production tests/load/k6-load-test.js",
+    "load:k6:heavy": "k6 run --env SCENARIO=heavy --env ENVIRONMENT=production tests/load/k6-load-test.js",
+    "load:artillery": "artillery run --environment production tests/load/artillery-load-test.yml"
   },
   "dependencies": {
     "@pinecone-database/pinecone": "^2.2.0",
