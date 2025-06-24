@@ -67,15 +67,42 @@ app.use(cors(securityConfig.cors));
 // Input sanitization
 app.use(sanitizeInput);
 
-// API Documentation with Swagger - Working setup
+// API Documentation with Swagger - Debug setup
 logger.info('Setting up Swagger documentation...');
 
-// Working Swagger setup using proper middleware chain
-app.get('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
+// Simple test endpoint to verify routing works
+app.get('/api-docs-simple', (req, res) => {
+  logger.info('[SWAGGER] Simple test endpoint hit');
+  res.send(`
+    <html>
+      <head><title>API Documentation Test</title></head>
+      <body>
+        <h1>API Documentation Test</h1>
+        <p>This endpoint is working. Swagger specs available: ${!!specs}</p>
+        <p>Paths count: ${specs ? Object.keys(specs.paths || {}).length : 0}</p>
+        <pre>${JSON.stringify(specs?.info || {}, null, 2)}</pre>
+      </body>
+    </html>
+  `);
+});
 
-// Alternative method for comparison
-app.use('/api-docs-alt', swaggerUi.serve);
-app.get('/api-docs-alt', swaggerUi.setup(specs, swaggerOptions));
+// Manual Swagger UI setup
+app.get('/api-docs', (req, res) => {
+  logger.info('[SWAGGER] Main api-docs endpoint hit');
+  try {
+    const html = swaggerUi.generateHTML(specs, swaggerOptions.swaggerOptions);
+    res.send(html);
+  } catch (error) {
+    logger.error('[SWAGGER] Error generating HTML:', error);
+    res.status(500).json({ error: 'Failed to generate Swagger UI', details: error.message });
+  }
+});
+
+// Alternative using middleware
+app.get('/api-docs-alt', (req, res, next) => {
+  logger.info('[SWAGGER] Alternative endpoint hit');
+  next();
+}, swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
 
 logger.info('Swagger documentation setup complete');
 
@@ -129,6 +156,7 @@ app.get('/debug/routes', (req, res) => {
     'GET /health - Health check', 
     'GET /api-docs - Swagger API Documentation (main)',
     'GET /api-docs-alt - Swagger API Documentation (alternative)',
+    'GET /api-docs-simple - Simple API docs test',
     'GET /debug/swagger - Swagger configuration debug',
     'GET /debug/swagger-test - Swagger components test',
     'GET /api/businesses - List businesses',
