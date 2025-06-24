@@ -125,7 +125,7 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
       if (businessResult.success) {
         logger.success(
           `[WEBHOOK] Business registered: ${businessName} (ID: ${businessResult.businessId})`
-
+        );
 
         // Register with Twilio service
         const twilioResult = await twilioWhatsAppService.registerBusiness(
@@ -173,6 +173,7 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
         // This is always a customer query, regardless of who sends it
         logger.info(
           `[WEBHOOK] Customer query detected from ${senderBusiness ? 'business owner' : 'customer'}`
+        );
 
         const parts = Body.split(' ');
         if (parts.length >= 3) {
@@ -565,6 +566,7 @@ async function initializeServices() {
         '[STARTUP] Database tables check failed (this is normal on first run):',
         error.message
       );
+    }
 
     // Initialize vector service
     logger.info('[STARTUP] Initializing vector service...');
@@ -584,7 +586,7 @@ async function initializeServices() {
 
     logger.success('[STARTUP] All services initialized successfully!');
 
-    } catch (error) {
+  } catch (error) {
     logger.error('[STARTUP] Failed to initialize services:', error);
 
     // Don't exit completely - let the app run but log the error
