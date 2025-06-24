@@ -172,6 +172,7 @@ const validateQueryParams = allowedParams => {
           'query'
         )
       );
+    }
 
     next();
   };
