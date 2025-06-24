@@ -12,26 +12,26 @@ describe('TwilioWhatsAppService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Mock Twilio client
     mockClient = {
       api: {
         accounts: jest.fn().mockReturnValue({
           fetch: jest.fn().mockResolvedValue({
-            friendlyName: 'Test Account'
-          })
-        })
+            friendlyName: 'Test Account',
+          }),
+        }),
       },
       messages: {
         create: jest.fn().mockResolvedValue({
           sid: 'SM1234567890',
-          status: 'sent'
-        })
-      }
+          status: 'sent',
+        }),
+      },
     };
-    
+
     twilio.mockReturnValue(mockClient);
-    
+
     // Set up environment variables
     process.env.TWILIO_ACCOUNT_SID = 'test-account-sid';
     process.env.TWILIO_AUTH_TOKEN = 'test-auth-token';
@@ -43,7 +43,7 @@ describe('TwilioWhatsAppService', () => {
     delete process.env.TWILIO_ACCOUNT_SID;
     delete process.env.TWILIO_AUTH_TOKEN;
     delete process.env.TWILIO_WHATSAPP_NUMBER;
-    
+
     // Reset service state
     twilioWhatsAppService.isInitialized = false;
     twilioWhatsAppService.client = null;
@@ -52,7 +52,7 @@ describe('TwilioWhatsAppService', () => {
 
   describe('initialize', () => {
     test('should initialize successfully with valid credentials', async () => {
-      RetryManager.withRetry.mockImplementation(async (fn) => await fn());
+      RetryManager.withRetry.mockImplementation(async fn => await fn());
 
       await twilioWhatsAppService.initialize();
 
@@ -80,12 +80,14 @@ describe('TwilioWhatsAppService', () => {
     test('should handle connection test failures', async () => {
       RetryManager.withRetry.mockRejectedValue(new Error('Connection failed'));
 
-      await expect(twilioWhatsAppService.initialize()).rejects.toThrow('Failed to connect to Twilio API');
+      await expect(twilioWhatsAppService.initialize()).rejects.toThrow(
+        'Failed to connect to Twilio API'
+      );
       expect(twilioWhatsAppService.isInitialized).toBe(false);
     });
 
     test('should retry connection test on failures', async () => {
-      RetryManager.withRetry.mockImplementation(async (fn) => await fn());
+      RetryManager.withRetry.mockImplementation(async fn => await fn());
 
       await twilioWhatsAppService.initialize();
 
@@ -94,7 +96,7 @@ describe('TwilioWhatsAppService', () => {
         expect.objectContaining({
           maxAttempts: 3,
           delayMs: 1000,
-          operationName: 'twilioConnectionTest'
+          operationName: 'twilioConnectionTest',
         })
       );
     });
@@ -102,7 +104,7 @@ describe('TwilioWhatsAppService', () => {
 
   describe('registerBusiness', () => {
     beforeEach(async () => {
-      RetryManager.withRetry.mockImplementation(async (fn) => await fn());
+      RetryManager.withRetry.mockImplementation(async fn => await fn());
       await twilioWhatsAppService.initialize();
     });
 
@@ -113,20 +115,25 @@ describe('TwilioWhatsAppService', () => {
       const ownerPhone = '+15559876543';
 
       const result = await twilioWhatsAppService.registerBusiness(
-        businessId, businessName, whatsappNumber, ownerPhone
+        businessId,
+        businessName,
+        whatsappNumber,
+        ownerPhone
       );
 
       expect(result.success).toBe(true);
       expect(result.businessData).toBeDefined();
       expect(twilioWhatsAppService.businesses.has('whatsapp:+15551234567')).toBe(true);
-      
+
       const businessData = twilioWhatsAppService.businesses.get('whatsapp:+15551234567');
-      expect(businessData).toEqual(expect.objectContaining({
-        businessId,
-        businessName,
-        whatsappNumber: 'whatsapp:+15551234567',
-        ownerPhone
-      }));
+      expect(businessData).toEqual(
+        expect.objectContaining({
+          businessId,
+          businessName,
+          whatsappNumber: 'whatsapp:+15551234567',
+          ownerPhone,
+        })
+      );
     });
 
     test('should format WhatsApp number correctly', async () => {
@@ -136,7 +143,10 @@ describe('TwilioWhatsAppService', () => {
       const ownerPhone = '+15559876543';
 
       await twilioWhatsAppService.registerBusiness(
-        businessId, businessName, whatsappNumber, ownerPhone
+        businessId,
+        businessName,
+        whatsappNumber,
+        ownerPhone
       );
 
       expect(twilioWhatsAppService.businesses.has('whatsapp:+15551234567')).toBe(true);
@@ -150,7 +160,10 @@ describe('TwilioWhatsAppService', () => {
 
       // The registerBusiness method should complete successfully even if there are issues
       const result = await twilioWhatsAppService.registerBusiness(
-        businessId, businessName, whatsappNumber, ownerPhone
+        businessId,
+        businessName,
+        whatsappNumber,
+        ownerPhone
       );
 
       // Currently the method always succeeds, so we check that it returns a result
@@ -169,12 +182,18 @@ describe('TwilioWhatsAppService', () => {
 
       // Register first business
       const result1 = await twilioWhatsAppService.registerBusiness(
-        businessId1, businessName1, whatsappNumber1, ownerPhone
+        businessId1,
+        businessName1,
+        whatsappNumber1,
+        ownerPhone
       );
 
       // Register second business with different number
       const result2 = await twilioWhatsAppService.registerBusiness(
-        businessId2, businessName2, whatsappNumber2, ownerPhone
+        businessId2,
+        businessName2,
+        whatsappNumber2,
+        ownerPhone
       );
 
       expect(result1.success).toBe(true);
@@ -185,7 +204,7 @@ describe('TwilioWhatsAppService', () => {
 
   describe('sendMessage', () => {
     beforeEach(async () => {
-      RetryManager.withRetry.mockImplementation(async (fn) => await fn());
+      RetryManager.withRetry.mockImplementation(async fn => await fn());
       await twilioWhatsAppService.initialize();
     });
 
@@ -193,7 +212,7 @@ describe('TwilioWhatsAppService', () => {
       const to = '+15551234567';
       const message = 'Hello, this is a test message';
 
-      RetryManager.withRetry.mockImplementation(async (fn) => await fn());
+      RetryManager.withRetry.mockImplementation(async fn => await fn());
 
       const result = await twilioWhatsAppService.sendMessage(to, message);
 
@@ -202,7 +221,7 @@ describe('TwilioWhatsAppService', () => {
       expect(mockClient.messages.create).toHaveBeenCalledWith({
         from: 'whatsapp:+14155238886',
         to: 'whatsapp:+15551234567',
-        body: message
+        body: message,
       });
     });
 
@@ -210,14 +229,14 @@ describe('TwilioWhatsAppService', () => {
       const to = 'whatsapp:+15551234567'; // Already formatted
       const message = 'Test message';
 
-      RetryManager.withRetry.mockImplementation(async (fn) => await fn());
+      RetryManager.withRetry.mockImplementation(async fn => await fn());
 
       await twilioWhatsAppService.sendMessage(to, message);
 
       expect(mockClient.messages.create).toHaveBeenCalledWith({
         from: 'whatsapp:+14155238886',
         to: 'whatsapp:+15551234567',
-        body: message
+        body: message,
       });
     });
 
@@ -249,7 +268,7 @@ describe('TwilioWhatsAppService', () => {
       const to = '+15551234567';
       const message = 'Test message';
 
-      RetryManager.withRetry.mockImplementation(async (fn) => await fn());
+      RetryManager.withRetry.mockImplementation(async fn => await fn());
 
       await twilioWhatsAppService.sendMessage(to, message);
 
@@ -258,7 +277,7 @@ describe('TwilioWhatsAppService', () => {
         expect.objectContaining({
           maxAttempts: 3,
           delayMs: 1000,
-          operationName: 'twilioSendMessage'
+          operationName: 'twilioSendMessage',
         })
       );
     });
@@ -266,7 +285,7 @@ describe('TwilioWhatsAppService', () => {
 
   describe('getBusinessByWhatsAppNumber', () => {
     beforeEach(async () => {
-      RetryManager.withRetry.mockImplementation(async (fn) => await fn());
+      RetryManager.withRetry.mockImplementation(async fn => await fn());
       await twilioWhatsAppService.initialize();
     });
 
@@ -275,7 +294,7 @@ describe('TwilioWhatsAppService', () => {
         businessId: 'test_123',
         businessName: 'Test Restaurant',
         whatsappNumber: 'whatsapp:+15551234567',
-        ownerPhone: '+15559876543'
+        ownerPhone: '+15559876543',
       };
 
       await twilioWhatsAppService.registerBusiness(
@@ -301,7 +320,7 @@ describe('TwilioWhatsAppService', () => {
         businessId: 'test_123',
         businessName: 'Test Restaurant',
         whatsappNumber: '+15551234567',
-        ownerPhone: '+15559876543'
+        ownerPhone: '+15559876543',
       };
 
       await twilioWhatsAppService.registerBusiness(
@@ -314,16 +333,18 @@ describe('TwilioWhatsAppService', () => {
       // Search with unformatted number
       const result = twilioWhatsAppService.getBusinessByWhatsAppNumber('+15551234567');
 
-      expect(result).toEqual(expect.objectContaining({
-        businessId: 'test_123',
-        whatsappNumber: 'whatsapp:+15551234567'
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          businessId: 'test_123',
+          whatsappNumber: 'whatsapp:+15551234567',
+        })
+      );
     });
   });
 
   describe('getAllBusinesses', () => {
     beforeEach(async () => {
-      RetryManager.withRetry.mockImplementation(async (fn) => await fn());
+      RetryManager.withRetry.mockImplementation(async fn => await fn());
       await twilioWhatsAppService.initialize();
     });
 
@@ -333,14 +354,14 @@ describe('TwilioWhatsAppService', () => {
         businessId: 'test_123',
         businessName: 'Restaurant 1',
         whatsappNumber: 'whatsapp:+15551111111',
-        ownerPhone: '+15559876543'
+        ownerPhone: '+15559876543',
       };
-      
+
       const business2 = {
         businessId: 'test_456',
         businessName: 'Restaurant 2',
         whatsappNumber: 'whatsapp:+15552222222',
-        ownerPhone: '+15559876544'
+        ownerPhone: '+15559876544',
       };
 
       twilioWhatsAppService.businesses.set(business1.whatsappNumber, business1);
@@ -349,10 +370,12 @@ describe('TwilioWhatsAppService', () => {
       const result = twilioWhatsAppService.getAllBusinesses();
 
       expect(result).toHaveLength(2);
-      expect(result).toEqual(expect.arrayContaining([
-        expect.objectContaining(business1),
-        expect.objectContaining(business2)
-      ]));
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining(business1),
+          expect.objectContaining(business2),
+        ])
+      );
     });
 
     test('should return empty array when no businesses registered', () => {
@@ -364,7 +387,7 @@ describe('TwilioWhatsAppService', () => {
 
   describe('isHealthy', () => {
     test('should return true when initialized', async () => {
-      RetryManager.withRetry.mockImplementation(async (fn) => await fn());
+      RetryManager.withRetry.mockImplementation(async fn => await fn());
       await twilioWhatsAppService.initialize();
 
       expect(twilioWhatsAppService.isHealthy()).toBe(true);
@@ -379,7 +402,7 @@ describe('TwilioWhatsAppService', () => {
 
   describe('getStats', () => {
     beforeEach(async () => {
-      RetryManager.withRetry.mockImplementation(async (fn) => await fn());
+      RetryManager.withRetry.mockImplementation(async fn => await fn());
       await twilioWhatsAppService.initialize();
     });
 
@@ -389,13 +412,13 @@ describe('TwilioWhatsAppService', () => {
         businessId: 'test_123',
         businessName: 'Restaurant 1',
         whatsappNumber: 'whatsapp:+15551111111',
-        status: 'active'
+        status: 'active',
       });
       twilioWhatsAppService.businesses.set('whatsapp:+15552222222', {
         businessId: 'test_456',
         businessName: 'Restaurant 2',
         whatsappNumber: 'whatsapp:+15552222222',
-        status: 'active'
+        status: 'active',
       });
 
       const stats = twilioWhatsAppService.getStats();

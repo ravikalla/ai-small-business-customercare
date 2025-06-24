@@ -4,7 +4,7 @@
  */
 
 const logger = require('../utils/logger');
-const BusinessModel = require('../models/Business');
+const BusinessRepository = require('../repositories/BusinessRepository');
 
 class BusinessService {
   constructor() {
@@ -25,7 +25,7 @@ class BusinessService {
 
     try {
       // Check if owner is already registered
-      const existingBusiness = await BusinessModel.findByOwner(phoneNumber);
+      const existingBusiness = await BusinessRepository.findByOwner(phoneNumber);
       if (existingBusiness) {
         logger.warn(`[BUSINESS] Registration failed: ${phoneNumber} already has a business`);
         return { success: false, message: 'You already have a registered business' };
@@ -48,7 +48,7 @@ class BusinessService {
         },
       };
 
-      const createdBusiness = await BusinessModel.create(businessData);
+      const createdBusiness = await BusinessRepository.create(businessData);
 
       logger.success(
         `[BUSINESS] Successfully registered: ${businessName} (${businessId}) for ${phoneNumber}`
@@ -80,7 +80,7 @@ class BusinessService {
 
   async isOwnerRegistered(phoneNumber) {
     try {
-      const business = await BusinessModel.findByOwner(phoneNumber);
+      const business = await BusinessRepository.findByOwner(phoneNumber);
       return business !== null;
     } catch (error) {
       logger.error(`[BUSINESS] Error checking if owner registered ${phoneNumber}:`, error);
@@ -90,7 +90,7 @@ class BusinessService {
 
   async getBusinessByOwner(phoneNumber) {
     try {
-      return await BusinessModel.findByOwner(phoneNumber);
+      return await BusinessRepository.findByOwner(phoneNumber);
     } catch (error) {
       logger.error(`[BUSINESS] Error getting business by owner ${phoneNumber}:`, error);
       return null;
@@ -99,7 +99,7 @@ class BusinessService {
 
   async getBusinessById(businessId) {
     try {
-      return await BusinessModel.findByBusinessId(businessId);
+      return await BusinessRepository.findByBusinessId(businessId);
     } catch (error) {
       logger.error(`[BUSINESS] Error getting business by ID ${businessId}:`, error);
       return null;
@@ -108,7 +108,7 @@ class BusinessService {
 
   async updateKnowledgeCount(phoneNumber, increment = 1) {
     try {
-      const result = await BusinessModel.updateKnowledgeCount(phoneNumber, increment);
+      const result = await BusinessRepository.updateKnowledgeCount(phoneNumber, increment);
       if (result) {
         logger.debug(
           `[BUSINESS] Updated knowledge count for ${result.businessName}: ${increment > 0 ? '+' : ''}${increment}`
@@ -127,7 +127,7 @@ class BusinessService {
 
   async recordQuery(businessId) {
     try {
-      const result = await BusinessModel.recordQuery(businessId);
+      const result = await BusinessRepository.recordQuery(businessId);
       if (result) {
         logger.debug(`[BUSINESS] Recorded query for business ${result.businessName}`);
       }
@@ -140,7 +140,7 @@ class BusinessService {
 
   async getAllBusinesses() {
     try {
-      return await BusinessModel.getActiveBusinesses();
+      return await BusinessRepository.getActiveBusinesses();
     } catch (error) {
       logger.error('[BUSINESS] Error getting all businesses:', error);
       return [];
@@ -149,7 +149,7 @@ class BusinessService {
 
   async deleteBusiness(phoneNumber) {
     try {
-      const success = await BusinessModel.delete(phoneNumber);
+      const success = await BusinessRepository.delete(phoneNumber);
       if (success) {
         logger.info(`[BUSINESS] Soft deleted business for ${phoneNumber}`);
       }
@@ -162,7 +162,7 @@ class BusinessService {
 
   async getBusinessStats() {
     try {
-      return await BusinessModel.getBusinessStats();
+      return await BusinessRepository.getBusinessStats();
     } catch (error) {
       logger.error('[BUSINESS] Error getting business stats:', error);
       return [];

@@ -22,17 +22,21 @@ describe('VectorService', () => {
   describe('generateEmbedding', () => {
     test('should return mock embedding', async () => {
       const text = 'This is test text for embedding';
-      
+
       const result = await vectorService.generateEmbedding(text);
-      
+
       expect(result).toHaveLength(1536);
       expect(result).toEqual(expect.arrayContaining([expect.any(Number)]));
       expect(vectorService.generateEmbedding).toHaveBeenCalledWith(text);
     });
 
     test('should handle different text inputs', async () => {
-      const texts = ['Short text', 'A much longer text that contains multiple sentences and various words.', ''];
-      
+      const texts = [
+        'Short text',
+        'A much longer text that contains multiple sentences and various words.',
+        '',
+      ];
+
       for (const text of texts) {
         const result = await vectorService.generateEmbedding(text);
         expect(result).toHaveLength(1536);
@@ -48,11 +52,11 @@ describe('VectorService', () => {
         businessName: 'Test Business',
         filename: 'test.txt',
         content: 'This is test document content',
-        metadata: { source: 'upload' }
+        metadata: { source: 'upload' },
       };
 
       const result = await vectorService.storeDocument(documentData);
-      
+
       expect(result).toEqual({ success: true });
       expect(vectorService.storeDocument).toHaveBeenCalledWith(documentData);
     });
@@ -73,7 +77,7 @@ describe('VectorService', () => {
     test('should handle different search parameters', async () => {
       const queries = ['What are your hours?', 'Do you have pizza?'];
       const businessId = 'test_123';
-      
+
       for (const query of queries) {
         const result = await vectorService.searchSimilar(query, businessId, 5);
         expect(Array.isArray(result)).toBe(true);
@@ -84,19 +88,19 @@ describe('VectorService', () => {
   describe('deleteByKnowledgeId', () => {
     test('should delete by knowledge ID', async () => {
       const knowledgeId = 'kb_test_123';
-      
+
       const result = await vectorService.deleteByKnowledgeId(knowledgeId);
-      
+
       expect(result).toEqual({
         success: true,
-        deletedCount: 2
+        deletedCount: 2,
       });
       expect(vectorService.deleteByKnowledgeId).toHaveBeenCalledWith(knowledgeId);
     });
 
     test('should handle multiple knowledge IDs', async () => {
       const knowledgeIds = ['kb_test_123', 'kb_test_456', 'kb_test_789'];
-      
+
       for (const knowledgeId of knowledgeIds) {
         const result = await vectorService.deleteByKnowledgeId(knowledgeId);
         expect(result).toHaveProperty('success');
@@ -108,9 +112,9 @@ describe('VectorService', () => {
   describe('deleteAllBusinessVectors', () => {
     test('should delete all business vectors', async () => {
       const businessId = 'test_123';
-      
+
       const result = await vectorService.deleteAllBusinessVectors(businessId);
-      
+
       expect(result).toEqual({ success: true });
       expect(vectorService.deleteAllBusinessVectors).toHaveBeenCalledWith(businessId);
     });

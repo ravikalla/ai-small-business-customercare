@@ -95,7 +95,9 @@ class VectorService {
         return;
       }
 
-      if (!this.index) {await this.initialize();}
+      if (!this.index) {
+        await this.initialize();
+      }
 
       const chunks = this.chunkText(content, 1000);
       logger.info(`[VECTOR] Split document into ${chunks.length} chunks`);
@@ -162,7 +164,9 @@ class VectorService {
         return cachedResults;
       }
 
-      if (!this.index) {await this.initialize();}
+      if (!this.index) {
+        await this.initialize();
+      }
 
       logger.debug(`[VECTOR] Generating query embedding for: "${query.substring(0, 50)}..."`);
       const queryEmbedding = await this.generateEmbedding(query);
@@ -221,7 +225,9 @@ class VectorService {
         return ['test-document.txt', 'sample-file.pdf'];
       }
 
-      if (!this.index) {await this.initialize();}
+      if (!this.index) {
+        await this.initialize();
+      }
 
       const response = await this.index.query({
         vector: new Array(1536).fill(0),
@@ -256,7 +262,9 @@ class VectorService {
         return { success: true, deletedCount: 3 };
       }
 
-      if (!this.index) {await this.initialize();}
+      if (!this.index) {
+        await this.initialize();
+      }
 
       // Find all vector IDs that match the business and filename pattern
       // Vector IDs are formatted as: ${businessId}-${filename}-${chunkIndex}
@@ -329,7 +337,9 @@ class VectorService {
         return { success: true, deletedCount: 2 };
       }
 
-      if (!this.index) {await this.initialize();}
+      if (!this.index) {
+        await this.initialize();
+      }
 
       // Find all vector IDs that contain the knowledge ID
       // For text knowledge: filename is `text_${knowledgeId}`
@@ -403,7 +413,9 @@ class VectorService {
     try {
       logger.info(`[VECTOR] Deleting all vectors for business: ${businessId}`);
 
-      if (!this.index) {await this.initialize();}
+      if (!this.index) {
+        await this.initialize();
+      }
 
       // Delete all vectors for the business using filter
       await RetryManager.withRetry(

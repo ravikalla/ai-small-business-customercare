@@ -7,8 +7,8 @@ const fs = require('fs').promises;
 const path = require('path');
 const logger = require('./logger');
 const database = require('../config/database');
-const BusinessModel = require('../models/Business');
-const KnowledgeModel = require('../models/Knowledge');
+const BusinessRepository = require('../repositories/BusinessRepository');
+const KnowledgeRepository = require('../repositories/KnowledgeRepository');
 
 class BackupManager {
   constructor() {
@@ -36,17 +36,17 @@ class BackupManager {
 
       if (type === 'full' || type === 'businesses') {
         logger.debug('[BACKUP] Backing up business data...');
-        backupData.data.businesses = await BusinessModel.getActiveBusinesses();
+        backupData.data.businesses = await BusinessRepository.getActiveBusinesses();
         logger.info(`[BACKUP] Backed up ${backupData.data.businesses.length} businesses`);
       }
 
       if (type === 'full' || type === 'knowledge') {
         logger.debug('[BACKUP] Backing up knowledge data...');
-        const allBusinesses = await BusinessModel.getActiveBusinesses();
+        const allBusinesses = await BusinessRepository.getActiveBusinesses();
         backupData.data.knowledge = {};
 
         for (const business of allBusinesses) {
-          const businessKnowledge = await KnowledgeModel.findByBusinessId(business.businessId);
+          const businessKnowledge = await KnowledgeRepository.findByBusinessId(business.businessId);
           backupData.data.knowledge[business.businessId] = businessKnowledge;
         }
 
@@ -117,14 +117,14 @@ class BackupManager {
           try {
             if (!dryRun) {
               // Check if business already exists
-              const existing = await BusinessModel.findByOwner(businessData.ownerPhone);
+              const existing = await BusinessRepository.findByOwner(businessData.ownerPhone);
 
               if (existing && skipExisting) {
                 results.businesses.skipped++;
                 continue;
               }
 
-              await BusinessModel.create(businessData);
+              await BusinessRepository.create(businessData);
             }
             results.businesses.created++;
 
@@ -148,14 +148,14 @@ class BackupManager {
             try {
               if (!dryRun) {
                 // Check if knowledge already exists
-                const existing = await KnowledgeModel.findByKnowledgeId(knowledgeData.knowledgeId);
+                const existing = await KnowledgeRepository.findByKnowledgeId(knowledgeData.knowledgeId);
 
                 if (existing && skipExisting) {
                   results.knowledge.skipped++;
                   continue;
                 }
 
-                await KnowledgeModel.create(knowledgeData);
+                await KnowledgeRepository.create(knowledgeData);
               }
               results.knowledge.created++;
 
@@ -305,11 +305,11 @@ class BackupManager {
       const exportPath = path.join(this.backupDir, `supabase_export_${timestamp}.sql`);
 
       // Get all data
-      const businesses = await BusinessModel.getActiveBusinesses();
+      const businesses = await BusinessRepository.getActiveBusinesses();
       const allKnowledge = {};
 
       for (const business of businesses) {
-        allKnowledge[business.businessId] = await KnowledgeModel.findByBusinessId(
+        allKnowledge[business.businessId] = await KnowledgeRepository.findByBusinessId(
           business.businessId
         );
 

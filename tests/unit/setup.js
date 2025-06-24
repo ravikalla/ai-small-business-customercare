@@ -43,8 +43,8 @@ jest.mock('../../src/utils/logger', () => ({
   success: jest.fn(),
 }));
 
-// Mock database models
-jest.mock('../../src/models/Business', () => ({
+// Mock database repositories
+jest.mock('../../src/repositories/BusinessRepository', () => ({
   findByOwner: jest.fn(),
   create: jest.fn(),
   findByBusinessId: jest.fn(),
@@ -55,7 +55,7 @@ jest.mock('../../src/models/Business', () => ({
   getBusinessStats: jest.fn(),
 }));
 
-jest.mock('../../src/models/Knowledge', () => ({
+jest.mock('../../src/repositories/KnowledgeRepository', () => ({
   create: jest.fn(),
   findByKnowledgeId: jest.fn(),
   getBusinessKnowledgePreview: jest.fn(),
@@ -63,6 +63,12 @@ jest.mock('../../src/models/Knowledge', () => ({
   getKnowledgeStats: jest.fn(),
   deleteByBusinessId: jest.fn(),
 }));
+
+// Mock old model paths for backward compatibility
+jest.mock('../../src/models/Business', () => require('../../src/repositories/BusinessRepository'));
+jest.mock('../../src/models/Knowledge', () =>
+  require('../../src/repositories/KnowledgeRepository')
+);
 
 // Mock services
 jest.mock('../../src/services/vectorService', () => ({
@@ -96,21 +102,23 @@ jest.mock('../../src/utils/retry', () => ({
 }));
 
 // Mock external dependencies
-jest.mock('twilio', () => jest.fn(() => ({
-  api: {
-    accounts: jest.fn().mockReturnValue({
-      fetch: jest.fn().mockResolvedValue({
-        friendlyName: 'Test Account'
-      })
-    })
-  },
-  messages: {
-    create: jest.fn().mockResolvedValue({
-      sid: 'SM1234567890',
-      status: 'sent'
-    })
-  }
-})));
+jest.mock('twilio', () =>
+  jest.fn(() => ({
+    api: {
+      accounts: jest.fn().mockReturnValue({
+        fetch: jest.fn().mockResolvedValue({
+          friendlyName: 'Test Account',
+        }),
+      }),
+    },
+    messages: {
+      create: jest.fn().mockResolvedValue({
+        sid: 'SM1234567890',
+        status: 'sent',
+      }),
+    },
+  }))
+);
 
 // Global test timeout
 jest.setTimeout(10000);

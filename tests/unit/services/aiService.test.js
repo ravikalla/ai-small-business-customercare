@@ -12,21 +12,21 @@ const aiService = require('../../../src/services/aiService');
 describe('AIService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Reset environment for each test
     process.env.NODE_ENV = 'test';
     process.env.OPENAI_API_KEY = 'test-key';
-    
+
     // Reset cache mocks
     cache.getCachedResponse.mockReturnValue(null);
     cache.cacheResponse.mockReturnValue(undefined);
-    
+
     // Reset vectorService mocks
     vectorService.searchSimilar.mockResolvedValue([]);
-    
+
     // Reset RetryManager mocks
-    RetryManager.withRetry.mockImplementation(async (fn) => await fn());
-    RetryManager.withCircuitBreaker.mockImplementation(async (fn) => await fn());
+    RetryManager.withRetry.mockImplementation(async fn => await fn());
+    RetryManager.withCircuitBreaker.mockImplementation(async fn => await fn());
   });
 
   afterEach(() => {
@@ -79,7 +79,9 @@ describe('AIService', () => {
 
       const result = await aiService.generateResponse(query, businessId);
 
-      expect(result).toMatch(/Test AI response for business restaurant_456: This is a mock response to the query "Do you have pizza\?"\./);
+      expect(result).toMatch(
+        /Test AI response for business restaurant_456: This is a mock response to the query "Do you have pizza\?"\./
+      );
     });
 
     test('should not throw errors in test mode', async () => {
@@ -94,11 +96,7 @@ describe('AIService', () => {
     });
 
     test('should handle different query types consistently', async () => {
-      const queries = [
-        'What are your hours?',
-        'Do you have pizza?',
-        'How much does it cost?'
-      ];
+      const queries = ['What are your hours?', 'Do you have pizza?', 'How much does it cost?'];
       const businessId = 'test_123';
 
       for (const query of queries) {
@@ -134,9 +132,9 @@ describe('AIService', () => {
     test('should handle generateResponse method', async () => {
       const query = 'test query';
       const businessId = 'test_123';
-      
+
       const result = await aiService.generateResponse(query, businessId);
-      
+
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(0);
     });

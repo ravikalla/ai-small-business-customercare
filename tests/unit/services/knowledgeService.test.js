@@ -12,20 +12,25 @@ const knowledgeService = require('../../../src/services/knowledgeService');
 describe('KnowledgeService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Reset KnowledgeModel mocks
     KnowledgeModel.create.mockResolvedValue({});
     KnowledgeModel.findByKnowledgeId.mockResolvedValue(null);
     KnowledgeModel.getBusinessKnowledgePreview.mockResolvedValue([]);
     KnowledgeModel.delete.mockResolvedValue(false);
-    KnowledgeModel.getKnowledgeStats.mockResolvedValue({ total: 0, text: 0, documents: 0, images: 0 });
+    KnowledgeModel.getKnowledgeStats.mockResolvedValue({
+      total: 0,
+      text: 0,
+      documents: 0,
+      images: 0,
+    });
     KnowledgeModel.deleteByBusinessId.mockResolvedValue([]);
-    
+
     // Reset vectorService mocks
     vectorService.storeDocument.mockResolvedValue({ success: true });
     vectorService.deleteByKnowledgeId.mockResolvedValue({ success: true, deletedCount: 1 });
     vectorService.deleteAllBusinessVectors.mockResolvedValue({ success: true });
-    
+
     // Reset cache mocks
     cache.clearBusinessCaches.mockReturnValue(undefined);
   });
@@ -34,7 +39,7 @@ describe('KnowledgeService', () => {
     test('should generate knowledge ID with correct format', () => {
       const businessId = 'test_123';
       const knowledgeId = knowledgeService.generateKnowledgeId(businessId);
-      
+
       expect(knowledgeId).toMatch(/^kb_test_123_\d+_[a-z0-9]{3}$/);
     });
 
@@ -42,7 +47,7 @@ describe('KnowledgeService', () => {
       const businessId = 'test_123';
       const id1 = knowledgeService.generateKnowledgeId(businessId);
       const id2 = knowledgeService.generateKnowledgeId(businessId);
-      
+
       expect(id1).not.toBe(id2);
     });
   });
@@ -56,7 +61,7 @@ describe('KnowledgeService', () => {
         knowledgeId: 'kb_test_123_1234567890_abc',
         businessId,
         businessName,
-        type: 'text'
+        type: 'text',
       };
 
       KnowledgeModel.create.mockResolvedValue(mockKnowledgeData);
@@ -67,22 +72,26 @@ describe('KnowledgeService', () => {
       expect(result.success).toBe(true);
       expect(result.knowledgeId).toMatch(/^kb_test_123_\d+_[a-z0-9]{3}$/);
       expect(result.message).toContain('Added to knowledge base');
-      
-      expect(KnowledgeModel.create).toHaveBeenCalledWith(expect.objectContaining({
-        businessId,
-        businessName,
-        type: 'text',
-        filename: null,
-        fileType: null,
-        contentPreview: content
-      }));
-      
-      expect(vectorService.storeDocument).toHaveBeenCalledWith(expect.objectContaining({
-        businessId,
-        businessName,
-        content,
-        filename: expect.stringMatching(/^text_kb_test_123/)
-      }));
+
+      expect(KnowledgeModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          businessId,
+          businessName,
+          type: 'text',
+          filename: null,
+          fileType: null,
+          contentPreview: content,
+        })
+      );
+
+      expect(vectorService.storeDocument).toHaveBeenCalledWith(
+        expect.objectContaining({
+          businessId,
+          businessName,
+          content,
+          filename: expect.stringMatching(/^text_kb_test_123/),
+        })
+      );
     });
 
     test('should handle long content with preview truncation', async () => {
@@ -95,9 +104,11 @@ describe('KnowledgeService', () => {
 
       await knowledgeService.addTextKnowledge(businessId, businessName, longContent);
 
-      expect(KnowledgeModel.create).toHaveBeenCalledWith(expect.objectContaining({
-        contentPreview: 'A'.repeat(500) + '...'
-      }));
+      expect(KnowledgeModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contentPreview: 'A'.repeat(500) + '...',
+        })
+      );
     });
 
     test('should handle metadata correctly', async () => {
@@ -111,15 +122,17 @@ describe('KnowledgeService', () => {
 
       await knowledgeService.addTextKnowledge(businessId, businessName, content, metadata);
 
-      expect(KnowledgeModel.create).toHaveBeenCalledWith(expect.objectContaining({
-        metadata: expect.objectContaining({
-          source: 'whatsapp', // Service always sets this
-          category: 'faq',
-          custom: 'value',
-          addedAt: expect.any(String),
-          fullContentLength: content.length
+      expect(KnowledgeModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            source: 'whatsapp', // Service always sets this
+            category: 'faq',
+            custom: 'value',
+            addedAt: expect.any(String),
+            fullContentLength: content.length,
+          }),
         })
-      }));
+      );
     });
 
     test('should handle database errors', async () => {
@@ -162,20 +175,26 @@ describe('KnowledgeService', () => {
       vectorService.storeDocument.mockResolvedValue({ success: true });
 
       const result = await knowledgeService.addDocumentKnowledge(
-        businessId, businessName, filename, content, fileType
+        businessId,
+        businessName,
+        filename,
+        content,
+        fileType
       );
 
       expect(result.success).toBe(true);
       expect(result.message).toContain(`Document "${filename}" added`);
-      
-      expect(KnowledgeModel.create).toHaveBeenCalledWith(expect.objectContaining({
-        businessId,
-        businessName,
-        type: 'document',
-        filename,
-        fileType,
-        contentPreview: content
-      }));
+
+      expect(KnowledgeModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          businessId,
+          businessName,
+          type: 'document',
+          filename,
+          fileType,
+          contentPreview: content,
+        })
+      );
     });
 
     test('should handle document processing errors', async () => {
@@ -188,7 +207,11 @@ describe('KnowledgeService', () => {
       KnowledgeModel.create.mockRejectedValue(new Error('Processing error'));
 
       const result = await knowledgeService.addDocumentKnowledge(
-        businessId, businessName, filename, content, fileType
+        businessId,
+        businessName,
+        filename,
+        content,
+        fileType
       );
 
       expect(result.success).toBe(false);
@@ -201,7 +224,7 @@ describe('KnowledgeService', () => {
       const businessId = 'test_123';
       const mockEntries = [
         { knowledgeId: 'kb_1', type: 'text', contentPreview: 'Text 1' },
-        { knowledgeId: 'kb_2', type: 'document', filename: 'doc.pdf' }
+        { knowledgeId: 'kb_2', type: 'document', filename: 'doc.pdf' },
       ];
 
       KnowledgeModel.getBusinessKnowledgePreview.mockResolvedValue(mockEntries);
@@ -231,9 +254,9 @@ describe('KnowledgeService', () => {
 
       KnowledgeModel.findByKnowledgeId.mockResolvedValue(mockEntry);
       KnowledgeModel.delete.mockResolvedValue(true);
-      vectorService.deleteByKnowledgeId.mockResolvedValue({ 
-        success: true, 
-        deletedCount: 3 
+      vectorService.deleteByKnowledgeId.mockResolvedValue({
+        success: true,
+        deletedCount: 3,
       });
       cache.clearBusinessCaches.mockResolvedValue();
 
@@ -241,7 +264,7 @@ describe('KnowledgeService', () => {
 
       expect(result.success).toBe(true);
       expect(result.message).toContain(`Deleted knowledge entry ${knowledgeId}`);
-      
+
       expect(KnowledgeModel.findByKnowledgeId).toHaveBeenCalledWith(knowledgeId);
       expect(KnowledgeModel.delete).toHaveBeenCalledWith(knowledgeId, businessId);
       expect(vectorService.deleteByKnowledgeId).toHaveBeenCalledWith(knowledgeId);
@@ -331,7 +354,7 @@ describe('KnowledgeService', () => {
         total: 10,
         text: 6,
         documents: 4,
-        images: 0
+        images: 0,
       };
 
       KnowledgeModel.getKnowledgeStats.mockResolvedValue(mockStats);
@@ -353,7 +376,7 @@ describe('KnowledgeService', () => {
         total: 0,
         text: 0,
         documents: 0,
-        images: 0
+        images: 0,
       });
     });
   });

@@ -4,7 +4,7 @@
  */
 
 const logger = require('../utils/logger');
-const KnowledgeModel = require('../models/Knowledge');
+const KnowledgeRepository = require('../repositories/KnowledgeRepository');
 const vectorService = require('./vectorService');
 
 class KnowledgeService {
@@ -44,7 +44,7 @@ class KnowledgeService {
       };
 
       // Store in Supabase database
-      await KnowledgeModel.create(knowledgeData);
+      await KnowledgeRepository.create(knowledgeData);
 
       // Store in vector database with full content
       logger.debug(`[KNOWLEDGE] Storing in vector database: ${knowledgeId}`);
@@ -98,7 +98,7 @@ class KnowledgeService {
       };
 
       // Store in Supabase database
-      await KnowledgeModel.create(knowledgeData);
+      await KnowledgeRepository.create(knowledgeData);
 
       // Store full content in vector database
       logger.debug(`[KNOWLEDGE] Storing document in vector database: ${knowledgeId}`);
@@ -129,7 +129,7 @@ class KnowledgeService {
 
   async getBusinessKnowledge(businessId) {
     try {
-      return await KnowledgeModel.getBusinessKnowledgePreview(businessId);
+      return await KnowledgeRepository.getBusinessKnowledgePreview(businessId);
     } catch (error) {
       logger.error(`[KNOWLEDGE] Error getting business knowledge for ${businessId}:`, error);
       return [];
@@ -139,7 +139,7 @@ class KnowledgeService {
   async deleteKnowledge(businessId, knowledgeId) {
     try {
       // Verify the knowledge entry exists and belongs to the business
-      const entry = await KnowledgeModel.findByKnowledgeId(knowledgeId);
+      const entry = await KnowledgeRepository.findByKnowledgeId(knowledgeId);
 
       if (!entry || entry.businessId !== businessId) {
         return {
@@ -149,7 +149,7 @@ class KnowledgeService {
       }
 
       // Delete from Supabase
-      const deleted = await KnowledgeModel.delete(knowledgeId, businessId);
+      const deleted = await KnowledgeRepository.delete(knowledgeId, businessId);
 
       if (!deleted) {
         return {
@@ -202,7 +202,7 @@ class KnowledgeService {
 
   async getKnowledgeStats(businessId) {
     try {
-      return await KnowledgeModel.getKnowledgeStats(businessId);
+      return await KnowledgeRepository.getKnowledgeStats(businessId);
     } catch (error) {
       logger.error(`[KNOWLEDGE] Error getting knowledge stats for ${businessId}:`, error);
       return {
@@ -218,7 +218,7 @@ class KnowledgeService {
 
   async getKnowledgeById(knowledgeId) {
     try {
-      return await KnowledgeModel.findByKnowledgeId(knowledgeId);
+      return await KnowledgeRepository.findByKnowledgeId(knowledgeId);
     } catch (error) {
       logger.error(`[KNOWLEDGE] Error getting knowledge by ID ${knowledgeId}:`, error);
       return null;
@@ -227,7 +227,7 @@ class KnowledgeService {
 
   async deleteAllBusinessKnowledge(businessId) {
     try {
-      const deletedIds = await KnowledgeModel.deleteByBusinessId(businessId);
+      const deletedIds = await KnowledgeRepository.deleteByBusinessId(businessId);
       logger.info(
         `[KNOWLEDGE] Deleted ${deletedIds.length} knowledge entries for business ${businessId}`
       );

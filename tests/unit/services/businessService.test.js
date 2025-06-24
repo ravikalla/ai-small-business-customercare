@@ -8,7 +8,7 @@ const businessService = require('../../../src/services/businessService');
 describe('BusinessService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Reset all BusinessModel mocks to default values
     BusinessModel.findByOwner.mockResolvedValue(null);
     BusinessModel.create.mockResolvedValue({});
@@ -24,7 +24,7 @@ describe('BusinessService', () => {
     test('should generate business ID with valid format', () => {
       const businessName = 'Test Restaurant & Cafe';
       const businessId = businessService.generateBusinessId(businessName);
-      
+
       expect(businessId).toMatch(/^testrest_\d{4}$/);
       expect(businessId.length).toBeLessThanOrEqual(13);
     });
@@ -32,14 +32,14 @@ describe('BusinessService', () => {
     test('should handle special characters in business name', () => {
       const businessName = 'ABC-123 @#$%';
       const businessId = businessService.generateBusinessId(businessName);
-      
+
       expect(businessId).toMatch(/^abc123_\d{4}$/);
     });
 
     test('should handle empty business name', () => {
       const businessName = '';
       const businessId = businessService.generateBusinessId(businessName);
-      
+
       expect(businessId).toMatch(/^_\d{4}$/);
     });
   });
@@ -52,7 +52,7 @@ describe('BusinessService', () => {
         businessId: 'testrest_1234',
         businessName,
         ownerPhone: phoneNumber,
-        status: 'active'
+        status: 'active',
       };
 
       BusinessModel.findByOwner.mockResolvedValue(null);
@@ -64,12 +64,14 @@ describe('BusinessService', () => {
       expect(result.businessId).toMatch(/^testrest_\d{4}$/);
       expect(result.businessName).toBe(businessName);
       expect(BusinessModel.findByOwner).toHaveBeenCalledWith(phoneNumber);
-      expect(BusinessModel.create).toHaveBeenCalledWith(expect.objectContaining({
-        businessName,
-        ownerPhone: phoneNumber,
-        knowledgeCount: 0,
-        status: 'active'
-      }));
+      expect(BusinessModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          businessName,
+          ownerPhone: phoneNumber,
+          knowledgeCount: 0,
+          status: 'active',
+        })
+      );
     });
 
     test('should reject registration for existing owner', async () => {
@@ -324,7 +326,7 @@ describe('BusinessService', () => {
     test('should return all active businesses', async () => {
       const mockBusinesses = [
         { businessId: 'test_123', businessName: 'Test Business 1' },
-        { businessId: 'test_456', businessName: 'Test Business 2' }
+        { businessId: 'test_456', businessName: 'Test Business 2' },
       ];
 
       BusinessModel.getActiveBusinesses.mockResolvedValue(mockBusinesses);
@@ -381,7 +383,7 @@ describe('BusinessService', () => {
     test('should return business statistics', async () => {
       const mockStats = [
         { businessId: 'test_123', totalQueries: 10, knowledgeCount: 5 },
-        { businessId: 'test_456', totalQueries: 20, knowledgeCount: 8 }
+        { businessId: 'test_456', totalQueries: 20, knowledgeCount: 8 },
       ];
 
       BusinessModel.getBusinessStats.mockResolvedValue(mockStats);
