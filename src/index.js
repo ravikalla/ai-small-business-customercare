@@ -88,9 +88,16 @@ app.get('/api-docs-simple', (req, res) => {
   `);
 });
 
-// Working Swagger UI endpoint
-app.use('/api-docs', swaggerUi.serve);
-app.get('/api-docs', swaggerUi.setup(specs, swaggerOptions));
+// Working Swagger UI endpoint with proper static asset handling
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
+  explorer: true,
+  swaggerOptions: {
+    docExpansion: 'list',
+    filter: true,
+    showRequestDuration: true,
+  },
+  customSiteTitle: 'Small Business Chatbot API Documentation'
+}));
 
 // Simple working setup
 app.use('/api-docs-working', swaggerUi.serve);
