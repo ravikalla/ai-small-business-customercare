@@ -67,30 +67,19 @@ app.use(cors(securityConfig.cors));
 // Input sanitization
 app.use(sanitizeInput);
 
-// API Documentation with Swagger
-try {
-  logger.info('Setting up Swagger documentation...');
-  
-  // Debug middleware to check if the route is being hit
-  app.use('/api-docs*', (req, res, next) => {
-    logger.info(`[SWAGGER] Request to ${req.originalUrl} - Method: ${req.method}`);
-    next();
-  });
-  
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
-  logger.info('Swagger documentation setup complete');
-} catch (error) {
-  logger.error('Failed to setup Swagger documentation:', error);
-  // Fallback endpoint if Swagger setup fails
-  app.get('/api-docs', (req, res) => {
-    res.status(500).json({
-      error: 'Swagger documentation unavailable',
-      message: 'There was an error setting up the API documentation',
-      debug_url: `${req.protocol}://${req.get('host')}/debug/swagger`,
-      timestamp: new Date().toISOString()
-    });
-  });
-}
+// API Documentation with Swagger - Simple direct setup
+logger.info('Setting up Swagger documentation...');
+
+// Direct route setup for Swagger UI
+app.get('/api-docs', (req, res, next) => {
+  logger.info(`[SWAGGER] Direct route hit: ${req.originalUrl}`);
+  next();
+}, swaggerUi.serve[0], swaggerUi.setup(specs, swaggerOptions));
+
+// Alternative setup method
+app.use('/api-docs-alt', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
+
+logger.info('Swagger documentation setup complete');
 
 // Debug endpoint to check Swagger specs
 app.get('/debug/swagger', (req, res) => {
@@ -117,17 +106,33 @@ app.get('/debug/swagger', (req, res) => {
   }
 });
 
-// Alternative Swagger endpoint to test direct UI serving
-app.get('/debug/swagger-ui', swaggerUi.serve[0], swaggerUi.setup(specs, swaggerOptions));
+// Test endpoint to verify Swagger UI components are working
+app.get('/debug/swagger-test', (req, res) => {
+  try {
+    logger.info('[SWAGGER] Test endpoint called');
+    res.json({
+      message: 'Swagger test endpoint',
+      swaggerUi_available: !!swaggerUi,
+      specs_available: !!specs,
+      serve_function: typeof swaggerUi.serve,
+      setup_function: typeof swaggerUi.setup,
+      specs_paths: specs ? Object.keys(specs.paths || {}).length : 0
+    });
+  } catch (error) {
+    logger.error('[SWAGGER] Test endpoint error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Debug endpoint to list all available routes
 app.get('/debug/routes', (req, res) => {
   const routes = [
     'GET / - API information',
     'GET /health - Health check', 
-    'GET /api-docs - Swagger API Documentation',
+    'GET /api-docs - Swagger API Documentation (main)',
+    'GET /api-docs-alt - Swagger API Documentation (alternative)',
     'GET /debug/swagger - Swagger configuration debug',
-    'GET /debug/swagger-ui - Alternative Swagger UI (test)',
+    'GET /debug/swagger-test - Swagger components test',
     'GET /api/businesses - List businesses',
     'POST /api/businesses - Create business',
     'GET /api/twilio/status - Twilio status',
