@@ -70,6 +70,29 @@ app.use(sanitizeInput);
 // API Documentation with Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
 
+// Debug endpoint to list all available routes
+app.get('/debug/routes', (req, res) => {
+  const routes = [
+    'GET / - API information',
+    'GET /health - Health check', 
+    'GET /api-docs - Swagger API Documentation',
+    'GET /api/businesses - List businesses',
+    'POST /api/businesses - Create business',
+    'GET /api/twilio/status - Twilio status',
+    'GET /api/admin/backup/list - List backups (requires auth)',
+    'GET /api/logging/metrics - Logging metrics (requires auth)',
+    'POST /webhooks/twilio/whatsapp - WhatsApp webhook',
+    'GET /webhooks/status - Webhook status'
+  ];
+  
+  res.json({
+    message: 'Available API endpoints',
+    swagger_url: `${req.protocol}://${req.get('host')}/api-docs`,
+    endpoints: routes,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Mount all routes
 app.use('/', routes);
 app.use('/api/knowledge', knowledgeBaseModule);
