@@ -20,13 +20,37 @@ const aiService = require('./services/aiService');
 
 const app = express();
 
+// Import middleware
+const { globalErrorHandler, handleNotFound } = require('./middleware/errorHandler');
+const { 
+  generalRateLimiter, 
+  configureHelmet, 
+  securityLogger, 
+  handlePreflight,
+  limitRequestSize 
+} = require('./middleware/security');
+const { sanitizeInput } = require('./middleware/validation');
+
 // Use configuration system
 const appConfig = config.get('app');
 const securityConfig = config.get('security');
 
+// Security middleware
+app.use(configureHelmet());
+app.use(handlePreflight);
+app.use(securityLogger);
+app.use(generalRateLimiter);
+app.use(limitRequestSize('10mb'));
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// CORS configuration
 app.use(cors(securityConfig.cors));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// Input sanitization
+app.use(sanitizeInput);
 
 app.use('/api/knowledge', knowledgeBaseModule);
 app.use('/webhooks', webhooksModule);
@@ -832,6 +856,10 @@ process.on('SIGINT', async () => {
     
     process.exit(0);
 });
+
+// Error handling middleware (must be last)
+app.use(handleNotFound);
+app.use(globalErrorHandler);
 
 // Start the server
 app.listen(appConfig.port, async () => {
