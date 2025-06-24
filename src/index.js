@@ -70,6 +70,13 @@ app.use(sanitizeInput);
 // API Documentation with Swagger
 try {
   logger.info('Setting up Swagger documentation...');
+  
+  // Debug middleware to check if the route is being hit
+  app.use('/api-docs*', (req, res, next) => {
+    logger.info(`[SWAGGER] Request to ${req.originalUrl} - Method: ${req.method}`);
+    next();
+  });
+  
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
   logger.info('Swagger documentation setup complete');
 } catch (error) {
@@ -110,6 +117,9 @@ app.get('/debug/swagger', (req, res) => {
   }
 });
 
+// Alternative Swagger endpoint to test direct UI serving
+app.get('/debug/swagger-ui', swaggerUi.serve[0], swaggerUi.setup(specs, swaggerOptions));
+
 // Debug endpoint to list all available routes
 app.get('/debug/routes', (req, res) => {
   const routes = [
@@ -117,6 +127,7 @@ app.get('/debug/routes', (req, res) => {
     'GET /health - Health check', 
     'GET /api-docs - Swagger API Documentation',
     'GET /debug/swagger - Swagger configuration debug',
+    'GET /debug/swagger-ui - Alternative Swagger UI (test)',
     'GET /api/businesses - List businesses',
     'POST /api/businesses - Create business',
     'GET /api/twilio/status - Twilio status',
