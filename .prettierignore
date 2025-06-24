@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+dist/
+build/
+
+# Logs
+logs/
+*.log
+
+# Test reports
+test-reports/
+coverage/
+
+# Temporary files
+tmp/
+temp/
+.tmp
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Data files
+data/
+uploads/
+*.json
+*.csv
+
+# SSH keys
+*.pem
+*.key
+
+# Generated documentation
+docs/api/generated/
+
+# Migration files (keep original formatting)
+migrations/
+
+# Third-party assets
+public/vendor/
+vendor/

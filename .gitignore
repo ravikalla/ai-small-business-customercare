@@ -81,5 +81,3 @@ dist/
 tmp/
 temp/
 
-# Claude IDE files
-.claude/
