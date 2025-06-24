@@ -65,7 +65,7 @@ const logError = (err, req) => {
     headers: req.headers,
     body: req.body,
     params: req.params,
-    query: req.query
+    query: req.query,
   };
 
   if (err instanceof AppError && err.isOperational) {
@@ -80,7 +80,7 @@ const logError = (err, req) => {
  */
 const sendErrorResponse = (res, err) => {
   const isDevelopment = process.env.NODE_ENV === 'development';
-  
+
   // Ensure error is an AppError instance
   if (!(err instanceof AppError)) {
     err = new AppError('Internal server error', 500, false);
@@ -92,32 +92,44 @@ const sendErrorResponse = (res, err) => {
       message: err.message,
       type: err.type || 'unknown_error',
       statusCode: err.statusCode,
-      timestamp: err.timestamp
-    }
+      timestamp: err.timestamp,
+    },
   };
 
   // Add development-only information
   if (isDevelopment) {
     response.error.stack = err.stack;
-    
-    if (err.field) response.error.field = err.field;
-    if (err.value) response.error.value = err.value;
-    if (err.resource) response.error.resource = err.resource;
-    if (err.resourceId) response.error.resourceId = err.resourceId;
-    if (err.service) response.error.service = err.service;
-    if (err.operation) response.error.operation = err.operation;
+
+    if (err.field) {
+      response.error.field = err.field;
+    }
+    if (err.value) {
+      response.error.value = err.value;
+    }
+    if (err.resource) {
+      response.error.resource = err.resource;
+    }
+    if (err.resourceId) {
+      response.error.resourceId = err.resourceId;
+    }
+    if (err.service) {
+      response.error.service = err.service;
+    }
+    if (err.operation) {
+      response.error.operation = err.operation;
+    }
   }
 
   // Set appropriate status code
   const statusCode = err.statusCode || 500;
-  
+
   return res.status(statusCode).json(response);
 };
 
 /**
  * Handle Mongoose validation errors
  */
-const handleValidationError = (err) => {
+const handleValidationError = err => {
   const { ValidationError } = require('../errors/AppError');
   const errors = Object.values(err.errors).map(val => val.message);
   const message = `Invalid input data: ${errors.join('. ')}`;
@@ -127,7 +139,7 @@ const handleValidationError = (err) => {
 /**
  * Handle Mongoose cast errors (invalid ObjectId, etc.)
  */
-const handleCastError = (err) => {
+const handleCastError = err => {
   const { ValidationError } = require('../errors/AppError');
   const message = `Invalid ${err.path}: ${err.value}`;
   return new ValidationError(message, err.path, err.value);
@@ -136,7 +148,7 @@ const handleCastError = (err) => {
 /**
  * Handle duplicate field errors
  */
-const handleDuplicateFieldError = (err) => {
+const handleDuplicateFieldError = err => {
   const { ValidationError } = require('../errors/AppError');
   const value = err.keyValue ? Object.values(err.keyValue)[0] : 'unknown';
   const field = err.keyValue ? Object.keys(err.keyValue)[0] : 'unknown';
@@ -163,17 +175,15 @@ const handleJWTExpiredError = () => {
 /**
  * Handle unknown/programming errors
  */
-const handleUnknownError = (err) => {
+const handleUnknownError = err => {
   logger.error('[CRITICAL] Unknown error occurred:', {
     message: err.message,
     stack: err.stack,
-    name: err.name
+    name: err.name,
   });
 
   // Don't leak error details in production
-  const message = process.env.NODE_ENV === 'production' 
-    ? 'Something went wrong!' 
-    : err.message;
+  const message = process.env.NODE_ENV === 'production' ? 'Something went wrong!' : err.message;
 
   return new AppError(message, 500, false);
 };
@@ -182,7 +192,7 @@ const handleUnknownError = (err) => {
  * Catch async errors middleware
  * Wraps async route handlers to catch errors and pass them to error handling middleware
  */
-const catchAsync = (fn) => {
+const catchAsync = fn => {
   return (req, res, next) => {
     fn(req, res, next).catch(next);
   };
@@ -202,5 +212,5 @@ module.exports = {
   catchAsync,
   handleNotFound,
   logError,
-  sendErrorResponse
+  sendErrorResponse,
 };

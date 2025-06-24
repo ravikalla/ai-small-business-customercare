@@ -8,141 +8,147 @@ const logger = require('../utils/logger');
 const RetryManager = require('../utils/retry');
 
 class DatabaseConfig {
-    constructor() {
-        this.isConnected = false;
-        this.supabaseUrl = process.env.SUPABASE_URL;
-        this.supabaseKey = process.env.SUPABASE_ANON_KEY;
-        this.supabase = null;
-    }
+  constructor() {
+    this.isConnected = false;
+    this.supabaseUrl = process.env.SUPABASE_URL;
+    this.supabaseKey = process.env.SUPABASE_ANON_KEY;
+    this.supabase = null;
+  }
 
-    async connect() {
-        try {
-            if (!this.supabaseUrl || !this.supabaseKey) {
-                throw new Error('Missing Supabase configuration. Please set SUPABASE_URL and SUPABASE_ANON_KEY in your .env file');
-            }
+  async connect() {
+    try {
+      if (!this.supabaseUrl || !this.supabaseKey) {
+        throw new Error(
+          'Missing Supabase configuration. Please set SUPABASE_URL and SUPABASE_ANON_KEY in your .env file'
+        );
+      }
 
-            logger.info('[DB] Connecting to Supabase...');
-            
-            this.supabase = createClient(this.supabaseUrl, this.supabaseKey, {
-                auth: {
-                    autoRefreshToken: true,
-                    persistSession: false // Server-side, don't persist sessions
-                },
-                db: {
-                    schema: 'public'
-                }
-            });
+      logger.info('[DB] Connecting to Supabase...');
 
-            // Test connection with a simple health check
-            await RetryManager.withRetry(async () => {
-                const { error } = await this.supabase.from('businesses').select('count').limit(1);
-                if (error && error.code !== 'PGRST116') { // PGRST116 = table doesn't exist yet, which is ok
-                    throw error;
-                }
-            }, {
-                maxAttempts: 3,
-                delayMs: 1000,
-                retryCondition: (error) => {
-                    // Retry on network or timeout errors
-                    return error.code === 'ECONNREFUSED' || 
-                           error.code === 'ETIMEDOUT' ||
-                           error.message?.includes('timeout');
-                },
-                operationName: 'supabaseConnect'
-            });
+      this.supabase = createClient(this.supabaseUrl, this.supabaseKey, {
+        auth: {
+          autoRefreshToken: true,
+          persistSession: false, // Server-side, don't persist sessions
+        },
+        db: {
+          schema: 'public',
+        },
+      });
 
-            this.isConnected = true;
-            logger.success(`[DB] Connected to Supabase: ${this.supabaseUrl}`);
-
-        } catch (error) {
-            logger.error('[DB] Failed to connect to Supabase:', error);
+      // Test connection with a simple health check
+      await RetryManager.withRetry(
+        async () => {
+          const { error } = await this.supabase.from('businesses').select('count').limit(1);
+          if (error && error.code !== 'PGRST116') {
+            // PGRST116 = table doesn't exist yet, which is ok
             throw error;
+          }
+        },
+        {
+          maxAttempts: 3,
+          delayMs: 1000,
+          retryCondition: error => {
+            // Retry on network or timeout errors
+            return (
+              error.code === 'ECONNREFUSED' ||
+              error.code === 'ETIMEDOUT' ||
+              error.message?.includes('timeout')
+            );
+          },
+          operationName: 'supabaseConnect',
         }
+      );
+
+      this.isConnected = true;
+      logger.success(`[DB] Connected to Supabase: ${this.supabaseUrl}`);
+    } catch (error) {
+      logger.error('[DB] Failed to connect to Supabase:', error);
+      throw error;
+    }
+  }
+
+  getClient() {
+    if (!this.supabase) {
+      throw new Error('Database not connected. Call connect() first.');
+    }
+    return this.supabase;
+  }
+
+  async disconnect() {
+    // Supabase client doesn't need explicit disconnection
+    this.isConnected = false;
+    this.supabase = null;
+    logger.info('[DB] Disconnected from Supabase');
+  }
+
+  isHealthy() {
+    return this.isConnected && this.supabase !== null;
+  }
+
+  async getConnectionStatus() {
+    if (!this.isHealthy()) {
+      return {
+        status: 'disconnected',
+        isHealthy: false,
+        url: this.supabaseUrl,
+      };
     }
 
-    getClient() {
-        if (!this.supabase) {
-            throw new Error('Database not connected. Call connect() first.');
-        }
-        return this.supabase;
+    try {
+      // Test with a simple query
+      const start = Date.now();
+      const { error } = await this.supabase.from('businesses').select('count').limit(1);
+      const latency = Date.now() - start;
+
+      return {
+        status: error && error.code !== 'PGRST116' ? 'error' : 'connected',
+        isHealthy: !error || error.code === 'PGRST116',
+        url: this.supabaseUrl,
+        latency: `${latency}ms`,
+        lastError: error && error.code !== 'PGRST116' ? error.message : null,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        isHealthy: false,
+        url: this.supabaseUrl,
+        error: error.message,
+      };
     }
+  }
 
-    async disconnect() {
-        // Supabase client doesn't need explicit disconnection
-        this.isConnected = false;
-        this.supabase = null;
-        logger.info('[DB] Disconnected from Supabase');
+  async createTables() {
+    try {
+      logger.info('[DB] Creating database tables...');
+
+      const client = this.getClient();
+
+      // Note: In production, you'd run these SQL commands in Supabase dashboard
+      // For development, we'll check if tables exist and guide user to create them
+
+      const { data, error } = await client.from('businesses').select('count').limit(1);
+
+      if (error && error.code === 'PGRST116') {
+        logger.warn('[DB] Tables not found. Please create tables in Supabase dashboard:');
+        logger.warn('[DB] 1. Go to your Supabase project dashboard');
+        logger.warn('[DB] 2. Navigate to SQL Editor');
+        logger.warn('[DB] 3. Run the table creation scripts');
+
+        // We'll create a migration file for the user
+        await this.generateMigrationScript();
+
+        throw new Error('Database tables not found. Please run the migration script in Supabase.');
+      }
+
+      logger.success('[DB] Database tables verified');
+    } catch (error) {
+      logger.error('[DB] Error with database tables:', error);
+      throw error;
     }
+  }
 
-    isHealthy() {
-        return this.isConnected && this.supabase !== null;
-    }
-
-    async getConnectionStatus() {
-        if (!this.isHealthy()) {
-            return {
-                status: 'disconnected',
-                isHealthy: false,
-                url: this.supabaseUrl
-            };
-        }
-
-        try {
-            // Test with a simple query
-            const start = Date.now();
-            const { error } = await this.supabase.from('businesses').select('count').limit(1);
-            const latency = Date.now() - start;
-
-            return {
-                status: error && error.code !== 'PGRST116' ? 'error' : 'connected',
-                isHealthy: !error || error.code === 'PGRST116',
-                url: this.supabaseUrl,
-                latency: `${latency}ms`,
-                lastError: error && error.code !== 'PGRST116' ? error.message : null
-            };
-        } catch (error) {
-            return {
-                status: 'error',
-                isHealthy: false,
-                url: this.supabaseUrl,
-                error: error.message
-            };
-        }
-    }
-
-    async createTables() {
-        try {
-            logger.info('[DB] Creating database tables...');
-            
-            const client = this.getClient();
-            
-            // Note: In production, you'd run these SQL commands in Supabase dashboard
-            // For development, we'll check if tables exist and guide user to create them
-            
-            const { data, error } = await client.from('businesses').select('count').limit(1);
-            
-            if (error && error.code === 'PGRST116') {
-                logger.warn('[DB] Tables not found. Please create tables in Supabase dashboard:');
-                logger.warn('[DB] 1. Go to your Supabase project dashboard');
-                logger.warn('[DB] 2. Navigate to SQL Editor');
-                logger.warn('[DB] 3. Run the table creation scripts');
-                
-                // We'll create a migration file for the user
-                await this.generateMigrationScript();
-                
-                throw new Error('Database tables not found. Please run the migration script in Supabase.');
-            }
-            
-            logger.success('[DB] Database tables verified');
-            
-        } catch (error) {
-            logger.error('[DB] Error with database tables:', error);
-            throw error;
-        }
-    }
-
-    async generateMigrationScript() {
-        const migrationSQL = `
+  async generateMigrationScript() {
+    const migrationSQL = `
 -- Small Business Care System Database Migration
 -- Author: Ravi Kalla <ravi2523096+sbc@gmail.com>
 
@@ -221,16 +227,16 @@ CREATE TRIGGER update_knowledge_entries_updated_at
 -- These are typically handled automatically by Supabase
 `;
 
-        const fs = require('fs').promises;
-        const path = require('path');
-        
-        const migrationPath = path.join(__dirname, '../../migrations/001_initial_schema.sql');
-        await fs.mkdir(path.dirname(migrationPath), { recursive: true });
-        await fs.writeFile(migrationPath, migrationSQL);
-        
-        logger.info(`[DB] Migration script created at: ${migrationPath}`);
-        logger.info('[DB] Please run this script in your Supabase SQL Editor');
-    }
+    const fs = require('fs').promises;
+    const path = require('path');
+
+    const migrationPath = path.join(__dirname, '../../migrations/001_initial_schema.sql');
+    await fs.mkdir(path.dirname(migrationPath), { recursive: true });
+    await fs.writeFile(migrationPath, migrationSQL);
+
+    logger.info(`[DB] Migration script created at: ${migrationPath}`);
+    logger.info('[DB] Please run this script in your Supabase SQL Editor');
+  }
 }
 
 module.exports = new DatabaseConfig();

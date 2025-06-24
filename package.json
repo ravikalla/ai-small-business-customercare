@@ -7,13 +7,17 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "cucumber-js",
+    "test": "jest",
+    "test:unit": "jest --testPathPattern=tests/unit",
+    "test:unit:watch": "jest --testPathPattern=tests/unit --watch",
+    "test:unit:coverage": "jest --testPathPattern=tests/unit --coverage",
+    "test:integration": "cucumber-js",
     "test:api": "cucumber-js --tags @api",
     "test:business": "cucumber-js --tags @business",
     "test:knowledge": "cucumber-js --tags @knowledge",
     "test:webhook": "cucumber-js --tags @webhook",
-    "test:integration": "cucumber-js --tags @integration",
     "test:smoke": "cucumber-js --tags @smoke",
+    "test:all": "npm run test:unit && npm run test:integration",
     "test:report": "cucumber-js --format html:test-reports/cucumber_report.html",
     "test:junit": "cucumber-js --format junit:test-reports/cucumber_report.xml",
     "lint": "eslint src/ tests/ config/ --ext .js",
@@ -22,7 +26,8 @@
     "format:check": "prettier --check src/ tests/ config/ *.js *.json *.md",
     "code:check": "npm run lint && npm run format:check",
     "code:fix": "npm run lint:fix && npm run format",
-    "coverage": "nyc cucumber-js",
+    "coverage": "jest --coverage",
+    "coverage:integration": "nyc cucumber-js",
     "audit:security": "npm audit --audit-level=moderate"
   },
   "dependencies": {
@@ -42,6 +47,7 @@
   },
   "devDependencies": {
     "@cucumber/cucumber": "^10.3.1",
+    "@jest/globals": "^30.0.2",
     "axios": "^1.10.0",
     "chai": "^4.3.10",
     "chai-http": "^4.4.0",
@@ -57,6 +63,6 @@
     "nyc": "^15.1.0",
     "prettier": "^3.6.0",
     "sinon": "^17.0.1",
-    "supertest": "^6.3.3"
+    "supertest": "^6.3.4"
   }
 }

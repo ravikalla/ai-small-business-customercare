@@ -22,12 +22,12 @@ const app = express();
 
 // Import middleware
 const { globalErrorHandler, handleNotFound } = require('./middleware/errorHandler');
-const { 
-  generalRateLimiter, 
-  configureHelmet, 
-  securityLogger, 
+const {
+  generalRateLimiter,
+  configureHelmet,
+  securityLogger,
   handlePreflight,
-  limitRequestSize 
+  limitRequestSize,
 } = require('./middleware/security');
 const { sanitizeInput } = require('./middleware/validation');
 
@@ -57,165 +57,195 @@ app.use('/webhooks', webhooksModule);
 
 // WhatsApp webhook endpoint
 app.post('/api/webhook/whatsapp', async (req, res) => {
-    try {
-        logger.info('[WEBHOOK] Received WhatsApp webhook:', JSON.stringify(req.body, null, 2));
-        
-        const { From, To, Body, MessageSid } = req.body;
-        
-        if (!From || !Body || !To) {
-            logger.warn('[WEBHOOK] Invalid webhook data - missing From, To, or Body');
-            return res.status(400).send('Invalid webhook data');
-        }
-        
-        // Extract phone numbers from WhatsApp format
-        const customerPhone = From.replace('whatsapp:', '');
-        const businessWhatsAppNumber = To;
-        logger.info(`[WEBHOOK] Processing message from ${customerPhone} to ${businessWhatsAppNumber}: "${Body}"`);
-        
-        // Find business by WhatsApp number (for production with dedicated numbers)
-        const targetBusiness = await businessService.getBusinessByWhatsAppNumber(businessWhatsAppNumber);
-        if (!targetBusiness && !Body.toLowerCase().startsWith('!register')) {
-            logger.warn(`[WEBHOOK] No business found for WhatsApp number: ${businessWhatsAppNumber}`);
-            await twilioWhatsAppService.sendMessage(customerPhone, 'Sorry, this business is not registered with our system.');
-            return res.status(200).send('OK');
-        }
-        
-        // Handle business registration command
-        if (Body.toLowerCase().startsWith('!register ')) {
-            const businessName = Body.substring(10).trim();
-            
-            if (!businessName) {
-                await twilioWhatsAppService.sendMessage(customerPhone, 'Please provide a business name. Format: !register [Business Name]');
-                return res.status(200).send('OK');
-            }
-            
-            logger.info(`[WEBHOOK] Registration request: "${businessName}" from ${customerPhone}`);
-            
-            // Register the business
-            const businessResult = await businessService.registerBusiness(customerPhone, businessName);
-            
-            if (businessResult.success) {
-                logger.success(`[WEBHOOK] Business registered: ${businessName} (ID: ${businessResult.businessId})`);
-                
-                // Register with Twilio service
-                const twilioResult = await twilioWhatsAppService.registerBusiness(
-                    businessResult.businessId,
-                    businessName,
-                    To, // WhatsApp number
-                    customerPhone
-                );
-                
-                if (twilioResult.success) {
-                    await twilioWhatsAppService.sendMessage(
-                        customerPhone,
-                        `🎉 Business "${businessName}" registered successfully!\n\nBusiness ID: ${businessResult.businessId}\n\nCustomers can now query your business using:\n!business ${businessResult.businessId} [question]\n\nUse !help for available commands.`
-                    );
-                } else {
-                    await twilioWhatsAppService.sendMessage(
-                        customerPhone,
-                        `✅ Business registered in database but Twilio setup incomplete. Business ID: ${businessResult.businessId}`
-                    );
-                }
-            } else {
-                logger.error(`[WEBHOOK] Registration failed: ${businessResult.message}`);
-                await twilioWhatsAppService.sendMessage(customerPhone, `❌ Registration failed: ${businessResult.message}`);
-            }
+  try {
+    logger.info('[WEBHOOK] Received WhatsApp webhook:', JSON.stringify(req.body, null, 2));
+
+    const { From, To, Body, MessageSid } = req.body;
+
+    if (!From || !Body || !To) {
+      logger.warn('[WEBHOOK] Invalid webhook data - missing From, To, or Body');
+      return res.status(400).send('Invalid webhook data');
+    }
+
+    // Extract phone numbers from WhatsApp format
+    const customerPhone = From.replace('whatsapp:', '');
+    const businessWhatsAppNumber = To;
+    logger.info(
+      `[WEBHOOK] Processing message from ${customerPhone} to ${businessWhatsAppNumber}: "${Body}"`
+    );
+
+    // Find business by WhatsApp number (for production with dedicated numbers)
+    const targetBusiness =
+      await businessService.getBusinessByWhatsAppNumber(businessWhatsAppNumber);
+    if (!targetBusiness && !Body.toLowerCase().startsWith('!register')) {
+      logger.warn(`[WEBHOOK] No business found for WhatsApp number: ${businessWhatsAppNumber}`);
+      await twilioWhatsAppService.sendMessage(
+        customerPhone,
+        'Sorry, this business is not registered with our system.'
+      );
+      return res.status(200).send('OK');
+    }
+
+    // Handle business registration command
+    if (Body.toLowerCase().startsWith('!register ')) {
+      const businessName = Body.substring(10).trim();
+
+      if (!businessName) {
+        await twilioWhatsAppService.sendMessage(
+          customerPhone,
+          'Please provide a business name. Format: !register [Business Name]'
+        );
+        return res.status(200).send('OK');
+      }
+
+      logger.info(`[WEBHOOK] Registration request: "${businessName}" from ${customerPhone}`);
+
+      // Register the business
+      const businessResult = await businessService.registerBusiness(customerPhone, businessName);
+
+      if (businessResult.success) {
+        logger.success(
+          `[WEBHOOK] Business registered: ${businessName} (ID: ${businessResult.businessId})`
+
+
+        // Register with Twilio service
+        const twilioResult = await twilioWhatsAppService.registerBusiness(
+          businessResult.businessId,
+          businessName,
+          To, // WhatsApp number
+          customerPhone
+        );
+
+        if (twilioResult.success) {
+          await twilioWhatsAppService.sendMessage(
+            customerPhone,
+            `🎉 Business "${businessName}" registered successfully!\n\nBusiness ID: ${businessResult.businessId}\n\nCustomers can now query your business using:\n!business ${businessResult.businessId} [question]\n\nUse !help for available commands.`
+          );
         } else {
-            // Handle other commands and customer queries
-            logger.info(`[WEBHOOK] Processing non-registration message: "${Body}"`);
-            
-            // Check what type of command this is
-            const senderBusiness = await businessService.getBusinessByOwner(customerPhone);
-            
-            // Handle simple customer queries (production mode)
-            if (targetBusiness && !Body.startsWith('!')) {
-                logger.info(`[WEBHOOK] Simple customer query to ${targetBusiness.businessName}: "${Body}"`);
-                
-                // Record query and generate AI response
-                await businessService.recordQuery(targetBusiness.businessId);
-                const response = await aiService.generateResponse(Body, targetBusiness.businessId);
-                await twilioWhatsAppService.sendMessage(customerPhone, response);
-                return res.status(200).send('OK');
-            } else if (Body.toLowerCase().startsWith('!business ')) {
-                // This is always a customer query, regardless of who sends it
-                logger.info(`[WEBHOOK] Customer query detected from ${senderBusiness ? 'business owner' : 'customer'}`);
-                
-                const parts = Body.split(' ');
-                if (parts.length >= 3) {
-                    const businessId = parts[1];
-                    const query = parts.slice(2).join(' ');
-                    
-                    logger.info(`[WEBHOOK] Customer query for business ${businessId}: "${query}"`);
-                    
-                    // Record query and generate response
-                    await businessService.recordQuery(businessId);
-                    const response = await aiService.generateResponse(query, businessId);
-                    await twilioWhatsAppService.sendMessage(customerPhone, response);
-                } else {
-                    await twilioWhatsAppService.sendMessage(customerPhone, 'Please provide a valid query. Format: !business [ID] [your question]');
-                }
-            } else if (senderBusiness && Body.startsWith('!')) {
-                // This is a business owner management command
-                logger.info(`[WEBHOOK] Business owner command from ${senderBusiness.businessName}`);
-                
-                // Parse the command
-                const commandMatch = Body.match(/^!(\w+)(?:\s+(.*))?$/i);
-                if (!commandMatch) {
-                    await twilioWhatsAppService.sendMessage(customerPhone, 'Invalid command format. Use !help for available commands.');
-                    return res.status(200).send('OK');
-                }
-                
-                const command = commandMatch[1].toLowerCase();
-                const args = commandMatch[2] || '';
-                
-                logger.info(`[WEBHOOK] Processing business owner command: ${command}`);
-                
-                switch (command) {
-                    case 'add':
-                        if (!args.trim()) {
-                            await twilioWhatsAppService.sendMessage(customerPhone, 'Please provide content. Format: !add [your knowledge text]');
-                        } else {
-                            logger.info(`[WEBHOOK] Adding knowledge for ${senderBusiness.businessName}`);
-                            const result = await knowledgeService.addTextKnowledge(
-                                senderBusiness.businessId,
-                                senderBusiness.businessName,
-                                args.trim()
-                            );
-                            
-                            if (result.success) {
-                                await businessService.updateKnowledgeCount(senderBusiness.ownerPhone);
-                                await twilioWhatsAppService.sendMessage(customerPhone, `✅ ${result.message}\n"${args.substring(0, 100)}${args.length > 100 ? '...' : ''}"`);
-                            } else {
-                                await twilioWhatsAppService.sendMessage(customerPhone, `❌ ${result.message}`);
-                            }
-                        }
-                        break;
-                        
-                    case 'list':
-                        logger.info(`[WEBHOOK] Listing knowledge for ${senderBusiness.businessName}`);
-                        const entries = await knowledgeService.getBusinessKnowledge(senderBusiness.businessId);
-                        const stats = await knowledgeService.getKnowledgeStats(senderBusiness.businessId);
-                        
-                        if (entries.length === 0) {
-                            await twilioWhatsAppService.sendMessage(customerPhone, `📚 Your Knowledge Base (${senderBusiness.businessName}):\n\nNo entries yet. Use !add [text] or send documents to get started!`);
-                        } else {
-                            let response = `📚 Your Knowledge Base (${senderBusiness.businessName}):\n\n`;
-                            entries.slice(0, 10).forEach(entry => {
-                                const date = new Date(entry.addedAt).toLocaleDateString();
-                                response += `${entry.id}: ${entry.preview} (${entry.type}) - ${date}\n`;
-                            });
-                            
-                            if (entries.length > 10) {
-                                response += `\n... and ${entries.length - 10} more entries`;
-                            }
-                            
-                            response += `\n📊 Total: ${stats.total} entries (${stats.text} text, ${stats.documents} documents)`;
-                            await twilioWhatsAppService.sendMessage(customerPhone, response);
-                        }
-                        break;
-                        
-                    case 'help':
-                        const help = `🔧 Available Commands for ${senderBusiness.businessName}:
+          await twilioWhatsAppService.sendMessage(
+            customerPhone,
+            `✅ Business registered in database but Twilio setup incomplete. Business ID: ${businessResult.businessId}`
+          );
+        }
+      } else {
+        logger.error(`[WEBHOOK] Registration failed: ${businessResult.message}`);
+        await twilioWhatsAppService.sendMessage(
+          customerPhone,
+          `❌ Registration failed: ${businessResult.message}`
+        );
+      }
+    } else {
+      // Handle other commands and customer queries
+      logger.info(`[WEBHOOK] Processing non-registration message: "${Body}"`);
+
+      // Check what type of command this is
+      const senderBusiness = await businessService.getBusinessByOwner(customerPhone);
+
+      // Handle simple customer queries (production mode)
+      if (targetBusiness && !Body.startsWith('!')) {
+        logger.info(`[WEBHOOK] Simple customer query to ${targetBusiness.businessName}: "${Body}"`);
+
+        // Record query and generate AI response
+        await businessService.recordQuery(targetBusiness.businessId);
+        const response = await aiService.generateResponse(Body, targetBusiness.businessId);
+        await twilioWhatsAppService.sendMessage(customerPhone, response);
+        return res.status(200).send('OK');
+      } else if (Body.toLowerCase().startsWith('!business ')) {
+        // This is always a customer query, regardless of who sends it
+        logger.info(
+          `[WEBHOOK] Customer query detected from ${senderBusiness ? 'business owner' : 'customer'}`
+
+        const parts = Body.split(' ');
+        if (parts.length >= 3) {
+          const businessId = parts[1];
+          const query = parts.slice(2).join(' ');
+
+          logger.info(`[WEBHOOK] Customer query for business ${businessId}: "${query}"`);
+
+          // Record query and generate response
+          await businessService.recordQuery(businessId);
+          const response = await aiService.generateResponse(query, businessId);
+          await twilioWhatsAppService.sendMessage(customerPhone, response);
+        } else {
+          await twilioWhatsAppService.sendMessage(
+            customerPhone,
+            'Please provide a valid query. Format: !business [ID] [your question]'
+          );
+        }
+      } else if (senderBusiness && Body.startsWith('!')) {
+        // This is a business owner management command
+        logger.info(`[WEBHOOK] Business owner command from ${senderBusiness.businessName}`);
+
+        // Parse the command
+        const commandMatch = Body.match(/^!(\w+)(?:\s+(.*))?$/i);
+        if (!commandMatch) {
+          await twilioWhatsAppService.sendMessage(
+            customerPhone,
+            'Invalid command format. Use !help for available commands.'
+          );
+          return res.status(200).send('OK');
+        }
+
+        const command = commandMatch[1].toLowerCase();
+        const args = commandMatch[2] || '';
+
+        logger.info(`[WEBHOOK] Processing business owner command: ${command}`);
+
+        switch (command) {
+          case 'add':
+            if (!args.trim()) {
+              await twilioWhatsAppService.sendMessage(
+                customerPhone,
+                'Please provide content. Format: !add [your knowledge text]'
+              );
+            } else {
+              logger.info(`[WEBHOOK] Adding knowledge for ${senderBusiness.businessName}`);
+              const result = await knowledgeService.addTextKnowledge(
+                senderBusiness.businessId,
+                senderBusiness.businessName,
+                args.trim()
+              );
+
+              if (result.success) {
+                await businessService.updateKnowledgeCount(senderBusiness.ownerPhone);
+                await twilioWhatsAppService.sendMessage(
+                  customerPhone,
+                  `✅ ${result.message}\n"${args.substring(0, 100)}${args.length > 100 ? '...' : ''}"`
+                );
+              } else {
+                await twilioWhatsAppService.sendMessage(customerPhone, `❌ ${result.message}`);
+              }
+            }
+            break;
+
+          case 'list':
+            logger.info(`[WEBHOOK] Listing knowledge for ${senderBusiness.businessName}`);
+            const entries = await knowledgeService.getBusinessKnowledge(senderBusiness.businessId);
+            const stats = await knowledgeService.getKnowledgeStats(senderBusiness.businessId);
+
+            if (entries.length === 0) {
+              await twilioWhatsAppService.sendMessage(
+                customerPhone,
+                `📚 Your Knowledge Base (${senderBusiness.businessName}):\n\nNo entries yet. Use !add [text] or send documents to get started!`
+              );
+            } else {
+              let response = `📚 Your Knowledge Base (${senderBusiness.businessName}):\n\n`;
+              entries.slice(0, 10).forEach(entry => {
+                const date = new Date(entry.addedAt).toLocaleDateString();
+                response += `${entry.id}: ${entry.preview} (${entry.type}) - ${date}\n`;
+              });
+
+              if (entries.length > 10) {
+                response += `\n... and ${entries.length - 10} more entries`;
+              }
+
+              response += `\n📊 Total: ${stats.total} entries (${stats.text} text, ${stats.documents} documents)`;
+              await twilioWhatsAppService.sendMessage(customerPhone, response);
+            }
+            break;
+
+          case 'help':
+            const help = `🔧 Available Commands for ${senderBusiness.businessName}:
 
 📝 *Knowledge Management:*
 • !add [text] - Add text knowledge
@@ -229,475 +259,492 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
 💡 *Tips:*
 - Customers can query your business using: !business ${senderBusiness.businessId} [question]
 - All uploaded content is processed and made searchable`;
-                        await twilioWhatsAppService.sendMessage(customerPhone, help);
-                        break;
-                        
-                    case 'delete':
-                        if (!args.trim()) {
-                            await twilioWhatsAppService.sendMessage(customerPhone, 'Please provide a knowledge ID. Format: !delete [knowledge-id]');
-                        } else {
-                            const result = await knowledgeService.deleteKnowledge(senderBusiness.businessId, args.trim());
-                            if (result.success) {
-                                await businessService.updateKnowledgeCount(senderBusiness.ownerPhone, -1);
-                                await twilioWhatsAppService.sendMessage(customerPhone, `✅ ${result.message}`);
-                            } else {
-                                await twilioWhatsAppService.sendMessage(customerPhone, `❌ ${result.message}`);
-                            }
-                        }
-                        break;
-                        
-                    default:
-                        await twilioWhatsAppService.sendMessage(customerPhone, `❌ Unknown command: ${command}\n\nUse !help for available commands.`);
-                }
+            await twilioWhatsAppService.sendMessage(customerPhone, help);
+            break;
+
+          case 'delete':
+            if (!args.trim()) {
+              await twilioWhatsAppService.sendMessage(
+                customerPhone,
+                'Please provide a knowledge ID. Format: !delete [knowledge-id]'
+              );
             } else {
-                    logger.debug(`[WEBHOOK] Unrecognized message format from ${customerPhone}`);
-                    await twilioWhatsAppService.sendMessage(customerPhone, 'Welcome! Use !register [Business Name] to register your business, or !business [ID] [question] to query a business.');
-                }
+              const result = await knowledgeService.deleteKnowledge(
+                senderBusiness.businessId,
+                args.trim()
+              );
+              if (result.success) {
+                await businessService.updateKnowledgeCount(senderBusiness.ownerPhone, -1);
+                await twilioWhatsAppService.sendMessage(customerPhone, `✅ ${result.message}`);
+              } else {
+                await twilioWhatsAppService.sendMessage(customerPhone, `❌ ${result.message}`);
+              }
             }
-        
-        res.status(200).send('OK');
-        
-    } catch (error) {
-        logger.error('[WEBHOOK] Error processing WhatsApp webhook:', error);
-        res.status(500).send('Internal Server Error');
+            break;
+
+          default:
+            await twilioWhatsAppService.sendMessage(
+              customerPhone,
+              `❌ Unknown command: ${command}\n\nUse !help for available commands.`
+            );
+        }
+      } else {
+        logger.debug(`[WEBHOOK] Unrecognized message format from ${customerPhone}`);
+        await twilioWhatsAppService.sendMessage(
+          customerPhone,
+          'Welcome! Use !register [Business Name] to register your business, or !business [ID] [question] to query a business.'
+        );
+      }
     }
+
+    res.status(200).send('OK');
+
+    } catch (error) {
+    logger.error('[WEBHOOK] Error processing WhatsApp webhook:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 app.get('/', (req, res) => {
-    const packageJson = require('../package.json');
-    const deploymentTime = process.env.DEPLOYMENT_TIME || new Date().toISOString();
-    
-    res.json({ 
-        message: 'Small Business Chatbot API is running!',
-        version: packageJson.version,
-        name: packageJson.name,
-        author: packageJson.author,
-        deploymentTime: deploymentTime,
-        uptime: Math.round(process.uptime()),
-        nodeVersion: process.version,
-        environment: process.env.NODE_ENV || 'development'
-    });
+  const packageJson = require('../package.json');
+  const deploymentTime = process.env.DEPLOYMENT_TIME || new Date().toISOString();
+
+  res.json({
+    message: 'Small Business Chatbot API is running!',
+    version: packageJson.version,
+    name: packageJson.name,
+    author: packageJson.author,
+    deploymentTime: deploymentTime,
+    uptime: Math.round(process.uptime()),
+    nodeVersion: process.version,
+    environment: process.env.NODE_ENV || 'development',
+  });
 });
 
 app.get('/health', async (req, res) => {
-    try {
-        const dbStatus = await database.getConnectionStatus();
-        const vectorStatus = vectorService.isHealthy ? vectorService.isHealthy() : false;
-        const twilioStatus = twilioWhatsAppService.isHealthy();
-        
-        res.json({
-            status: 'ok',
-            timestamp: new Date().toISOString(),
-            database: dbStatus,
-            vectorDB: { isHealthy: vectorStatus },
-            twilio: { isHealthy: twilioStatus },
-            uptime: process.uptime()
-        });
-    } catch (error) {
-        res.status(500).json({
-            status: 'error',
-            error: error.message
-        });
-    }
+  try {
+    const dbStatus = await database.getConnectionStatus();
+    const vectorStatus = vectorService.isHealthy ? vectorService.isHealthy() : false;
+    const twilioStatus = twilioWhatsAppService.isHealthy();
+
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      database: dbStatus,
+      vectorDB: { isHealthy: vectorStatus },
+      twilio: { isHealthy: twilioStatus },
+      uptime: process.uptime(),
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      error: error.message,
+    });
+  }
 });
 
 // Backup management endpoints
 app.post('/api/backup/create', async (req, res) => {
-    try {
-        const { type = 'full' } = req.body;
-        const result = await backupManager.createBackup(type);
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
+  try {
+    const { type = 'full' } = req.body;
+    const result = await backupManager.createBackup(type);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 });
 
 app.get('/api/backup/list', async (req, res) => {
-    try {
-        const backups = await backupManager.listBackups();
-        res.json({ success: true, backups });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
+  try {
+    const backups = await backupManager.listBackups();
+    res.json({ success: true, backups });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 });
 
 app.post('/api/backup/restore', async (req, res) => {
-    try {
-        const { backupPath, dryRun = false, skipExisting = true } = req.body;
-        const result = await backupManager.restoreBackup(backupPath, { dryRun, skipExisting });
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
+  try {
+    const { backupPath, dryRun = false, skipExisting = true } = req.body;
+    const result = await backupManager.restoreBackup(backupPath, { dryRun, skipExisting });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 });
 
 app.post('/api/backup/export-sql', async (req, res) => {
-    try {
-        const result = await backupManager.exportToSupabaseDump();
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
+  try {
+    const result = await backupManager.exportToSupabaseDump();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 });
 
 // Cache management endpoints
 app.post('/api/cache/clear', async (req, res) => {
-    try {
-        const cache = require('./utils/cache');
-        const { type, businessId } = req.body;
-        
-        if (businessId) {
-            const cleared = cache.clearBusinessCaches(businessId);
-            res.json({ success: true, message: `Cleared ${cleared} cache entries for business ${businessId}` });
-        } else if (type) {
-            cache.clear(type);
-            res.json({ success: true, message: `Cleared ${type} cache` });
-        } else {
-            cache.clear();
-            res.json({ success: true, message: 'Cleared all caches' });
-        }
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+  try {
+    const cache = require('./utils/cache');
+    const { type, businessId } = req.body;
+
+    if (businessId) {
+      const cleared = cache.clearBusinessCaches(businessId);
+      res.json({
+        success: true,
+        message: `Cleared ${cleared} cache entries for business ${businessId}`,
+      });
+    } else if (type) {
+      cache.clear(type);
+      res.json({ success: true, message: `Cleared ${type} cache` });
+    } else {
+      cache.clear();
+      res.json({ success: true, message: 'Cleared all caches' });
     }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 });
 
 app.get('/api/cache/stats', async (req, res) => {
-    try {
-        const cache = require('./utils/cache');
-        const stats = cache.getStats();
-        res.json({ success: true, stats });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
+  try {
+    const cache = require('./utils/cache');
+    const stats = cache.getStats();
+    res.json({ success: true, stats });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 });
 
 app.get('/api/cache/inspect', async (req, res) => {
-    try {
-        const cache = require('./utils/cache');
-        const { type } = req.query;
-        
-        const result = {
-            success: true,
-            timestamp: new Date().toISOString(),
-            caches: {}
+  try {
+    const cache = require('./utils/cache');
+    const { type } = req.query;
+
+    const result = {
+      success: true,
+      timestamp: new Date().toISOString(),
+      caches: {},
+    };
+
+    // Inspect specific cache type or all
+    const typesToInspect = type ? [type] : ['responses', 'embeddings', 'searches'];
+
+    typesToInspect.forEach(cacheType => {
+      if (cache.caches[cacheType]) {
+        result.caches[cacheType] = {
+          size: cache.caches[cacheType].size,
+          entries: [],
         };
-        
-        // Inspect specific cache type or all
-        const typesToInspect = type ? [type] : ['responses', 'embeddings', 'searches'];
-        
-        typesToInspect.forEach(cacheType => {
-            if (cache.caches[cacheType]) {
-                result.caches[cacheType] = {
-                    size: cache.caches[cacheType].size,
-                    entries: []
-                };
-                
-                // Get first 10 entries with metadata
-                let count = 0;
-                for (const [key, entry] of cache.caches[cacheType].entries()) {
-                    if (count >= 10) break;
-                    
-                    result.caches[cacheType].entries.push({
-                        key: key.substring(0, 50) + (key.length > 50 ? '...' : ''),
-                        fullKey: key,
-                        timestamp: new Date(entry.timestamp).toISOString(),
-                        ttl: entry.ttl,
-                        accessCount: entry.accessCount,
-                        lastAccessed: new Date(entry.lastAccessed).toISOString(),
-                        valuePreview: typeof entry.value === 'string' ? 
-                            entry.value.substring(0, 100) + (entry.value.length > 100 ? '...' : '') :
-                            JSON.stringify(entry.value).substring(0, 100)
-                    });
-                    count++;
-                }
-            }
-        });
-        
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
+
+        // Get first 10 entries with metadata
+        let count = 0;
+        for (const [key, entry] of cache.caches[cacheType].entries()) {
+          if (count >= 10) {break;}
+
+          result.caches[cacheType].entries.push({
+            key: key.substring(0, 50) + (key.length > 50 ? '...' : ''),
+            fullKey: key,
+            timestamp: new Date(entry.timestamp).toISOString(),
+            ttl: entry.ttl,
+            accessCount: entry.accessCount,
+            lastAccessed: new Date(entry.lastAccessed).toISOString(),
+            valuePreview:
+              typeof entry.value === 'string'
+                ? entry.value.substring(0, 100) + (entry.value.length > 100 ? '...' : '')
+                : JSON.stringify(entry.value).substring(0, 100),
+          });
+          count++;
+        }
+      }
+    });
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 });
 
 // Business management endpoints
 app.post('/api/businesses', async (req, res) => {
-    try {
-        const { businessName, whatsappNumber, ownerPhone } = req.body;
-        
-        if (!businessName || !whatsappNumber || !ownerPhone) {
-            return res.status(400).json({
-                success: false,
-                error: 'Missing required fields: businessName, whatsappNumber, ownerPhone'
-            });
-        }
+  try {
+    const { businessName, whatsappNumber, ownerPhone } = req.body;
 
-        // Register in business service
-        const businessResult = await businessService.registerBusiness(ownerPhone, businessName);
-        
-        if (!businessResult.success) {
-            return res.status(400).json(businessResult);
-        }
-
-        // Register in Twilio service
-        const twilioResult = await twilioWhatsAppService.registerBusiness(
-            businessResult.businessId,
-            businessName,
-            whatsappNumber,
-            ownerPhone
-        );
-
-        if (!twilioResult.success) {
-            return res.status(500).json({
-                success: false,
-                error: `Business registered but Twilio registration failed: ${twilioResult.error}`
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'Business registered successfully',
-            businessId: businessResult.businessId,
-            whatsappNumber: whatsappNumber
-        });
-
-    } catch (error) {
-        logger.error('[API] Error registering business:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+    if (!businessName || !whatsappNumber || !ownerPhone) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: businessName, whatsappNumber, ownerPhone',
+      });
     }
+
+    // Register in business service
+    const businessResult = await businessService.registerBusiness(ownerPhone, businessName);
+
+    if (!businessResult.success) {
+      return res.status(400).json(businessResult);
+    }
+
+    // Register in Twilio service
+    const twilioResult = await twilioWhatsAppService.registerBusiness(
+      businessResult.businessId,
+      businessName,
+      whatsappNumber,
+      ownerPhone
+    );
+
+    if (!twilioResult.success) {
+      return res.status(500).json({
+        success: false,
+        error: `Business registered but Twilio registration failed: ${twilioResult.error}`,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Business registered successfully',
+      businessId: businessResult.businessId,
+      whatsappNumber: whatsappNumber,
+    });
+  } catch (error) {
+    logger.error('[API] Error registering business:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 });
 
 app.post('/api/businesses/register', async (req, res) => {
-    try {
-        const { businessName, whatsappNumber, ownerPhone } = req.body;
-        
-        if (!businessName || !whatsappNumber || !ownerPhone) {
-            return res.status(400).json({
-                success: false,
-                error: 'Missing required fields: businessName, whatsappNumber, ownerPhone'
-            });
-        }
+  try {
+    const { businessName, whatsappNumber, ownerPhone } = req.body;
 
-        // Register in business service
-        const businessResult = await businessService.registerBusiness(ownerPhone, businessName);
-        
-        if (!businessResult.success) {
-            return res.status(400).json(businessResult);
-        }
-
-        // Register in Twilio service
-        const twilioResult = await twilioWhatsAppService.registerBusiness(
-            businessResult.businessId,
-            businessName,
-            whatsappNumber,
-            ownerPhone
-        );
-
-        if (!twilioResult.success) {
-            return res.status(500).json({
-                success: false,
-                error: `Business registered but Twilio registration failed: ${twilioResult.error}`
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'Business registered successfully',
-            businessId: businessResult.businessId,
-            whatsappNumber: whatsappNumber
-        });
-
-    } catch (error) {
-        logger.error('[API] Error registering business:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+    if (!businessName || !whatsappNumber || !ownerPhone) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: businessName, whatsappNumber, ownerPhone',
+      });
     }
+
+    // Register in business service
+    const businessResult = await businessService.registerBusiness(ownerPhone, businessName);
+
+    if (!businessResult.success) {
+      return res.status(400).json(businessResult);
+    }
+
+    // Register in Twilio service
+    const twilioResult = await twilioWhatsAppService.registerBusiness(
+      businessResult.businessId,
+      businessName,
+      whatsappNumber,
+      ownerPhone
+    );
+
+    if (!twilioResult.success) {
+      return res.status(500).json({
+        success: false,
+        error: `Business registered but Twilio registration failed: ${twilioResult.error}`,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Business registered successfully',
+      businessId: businessResult.businessId,
+      whatsappNumber: whatsappNumber,
+    });
+  } catch (error) {
+    logger.error('[API] Error registering business:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 });
 
 app.get('/api/businesses', async (req, res) => {
-    try {
-        const businesses = twilioWhatsAppService.getAllBusinesses();
-        res.json({
-            success: true,
-            businesses: businesses
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
+  try {
+    const businesses = twilioWhatsAppService.getAllBusinesses();
+    res.json({
+      success: true,
+      businesses: businesses,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 });
 
 app.get('/api/twilio/status', async (req, res) => {
-    try {
-        const stats = twilioWhatsAppService.getStats();
-        res.json({
-            success: true,
-            ...stats
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
+  try {
+    const stats = twilioWhatsAppService.getStats();
+    res.json({
+      success: true,
+      ...stats,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 });
 
 // Simple logs endpoint that definitely works
 app.get('/simple-logs', (req, res) => {
-    const { exec } = require('child_process');
-    const lines = req.query.lines || 50;
-    
-    exec(`pm2 logs sbc-system --lines ${lines} --raw`, (error, stdout, stderr) => {
-        if (error) {
-            return res.json({
-                success: false,
-                error: 'PM2 logs failed',
-                logs: [
-                    'Error accessing PM2 logs',
-                    'Please SSH to server for detailed logs:',
-                    'ssh -i your-key.pem ubuntu@your-ec2-public-dns',
-                    'pm2 logs sbc-system --timestamp'
-                ]
-            });
-        }
-        
-        const logs = stdout.split('\\n').filter(line => line.trim()).slice(-lines);
-        res.json({
-            success: true,
-            logs: logs,
-            count: logs.length,
-            timestamp: new Date().toISOString()
-        });
+  const { exec } = require('child_process');
+  const lines = req.query.lines || 50;
+
+  exec(`pm2 logs sbc-system --lines ${lines} --raw`, (error, stdout, stderr) => {
+    if (error) {
+      return res.json({
+        success: false,
+        error: 'PM2 logs failed',
+        logs: [
+          'Error accessing PM2 logs',
+          'Please SSH to server for detailed logs:',
+          'ssh -i your-key.pem ubuntu@your-ec2-public-dns',
+          'pm2 logs sbc-system --timestamp',
+        ],
+      });
+    }
+
+    const logs = stdout
+      .split('\\n')
+      .filter(line => line.trim())
+      .slice(-lines);
+    res.json({
+      success: true,
+      logs: logs,
+      count: logs.length,
+      timestamp: new Date().toISOString(),
     });
+  });
 });
 
 // Log monitoring endpoints
 app.get('/api/logs', async (req, res) => {
-    try {
-        const { lines = 100, filter = '', level = 'all' } = req.query;
-        const { exec } = require('child_process');
-        
-        exec(`pm2 logs sbc-system --lines ${lines} --raw`, (error, stdout, stderr) => {
-            if (error) {
-                return res.status(500).json({ 
-                    success: false, 
-                    error: 'Failed to fetch logs',
-                    details: error.message 
-                });
-            }
-            
-            let logs = stdout.split('\n').filter(line => line.trim());
-            
-            // Filter by log level
-            if (level !== 'all') {
-                logs = logs.filter(log => log.includes(level.toUpperCase()));
-            }
-            
-            // Filter by search term
-            if (filter) {
-                logs = logs.filter(log => log.toLowerCase().includes(filter.toLowerCase()));
-            }
-            
-            res.json({
-                success: true,
-                logs: logs.slice(-lines),
-                total: logs.length,
-                filter: filter || null,
-                level: level,
-                timestamp: new Date().toISOString()
-            });
+  try {
+    const { lines = 100, filter = '', level = 'all' } = req.query;
+    const { exec } = require('child_process');
+
+    exec(`pm2 logs sbc-system --lines ${lines} --raw`, (error, stdout, stderr) => {
+      if (error) {
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to fetch logs',
+          details: error.message,
         });
-    } catch (error) {
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
-    }
+      }
+
+      let logs = stdout.split('\n').filter(line => line.trim());
+
+      // Filter by log level
+      if (level !== 'all') {
+        logs = logs.filter(log => log.includes(level.toUpperCase()));
+      }
+
+      // Filter by search term
+      if (filter) {
+        logs = logs.filter(log => log.toLowerCase().includes(filter.toLowerCase()));
+      }
+
+      res.json({
+        success: true,
+        logs: logs.slice(-lines),
+        total: logs.length,
+        filter: filter || null,
+        level: level,
+        timestamp: new Date().toISOString(),
+      });
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 });
 
 // Application metrics endpoint
 app.get('/api/metrics', async (req, res) => {
-    try {
-        const { exec } = require('child_process');
-        
-        exec('pm2 jlist', (error, stdout, stderr) => {
-            if (error) {
-                return res.status(500).json({ 
-                    success: false, 
-                    error: 'Failed to fetch metrics' 
-                });
-            }
-            
-            try {
-                const processes = JSON.parse(stdout);
-                const sbcProcess = processes.find(p => p.name === 'sbc-system');
-                
-                if (sbcProcess) {
-                    res.json({
-                        success: true,
-                        metrics: {
-                            name: sbcProcess.name,
-                            status: sbcProcess.pm2_env.status,
-                            uptime: sbcProcess.pm2_env.pm_uptime,
-                            restarts: sbcProcess.pm2_env.restart_time,
-                            memory: Math.round(sbcProcess.monit.memory / 1024 / 1024) + ' MB',
-                            cpu: sbcProcess.monit.cpu + '%',
-                            pid: sbcProcess.pid,
-                            version: sbcProcess.pm2_env.version || 'unknown'
-                        },
-                        timestamp: new Date().toISOString()
-                    });
-                } else {
-                    res.status(404).json({ 
-                        success: false, 
-                        error: 'sbc-system process not found' 
-                    });
-                }
-            } catch (parseError) {
-                res.status(500).json({ 
-                    success: false, 
-                    error: 'Failed to parse PM2 data' 
-                });
-            }
+  try {
+    const { exec } = require('child_process');
+
+    exec('pm2 jlist', (error, stdout, stderr) => {
+      if (error) {
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to fetch metrics',
         });
-    } catch (error) {
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
+      }
+
+      try {
+        const processes = JSON.parse(stdout);
+        const sbcProcess = processes.find(p => p.name === 'sbc-system');
+
+        if (sbcProcess) {
+          res.json({
+            success: true,
+            metrics: {
+              name: sbcProcess.name,
+              status: sbcProcess.pm2_env.status,
+              uptime: sbcProcess.pm2_env.pm_uptime,
+              restarts: sbcProcess.pm2_env.restart_time,
+              memory: Math.round(sbcProcess.monit.memory / 1024 / 1024) + ' MB',
+              cpu: sbcProcess.monit.cpu + '%',
+              pid: sbcProcess.pid,
+              version: sbcProcess.pm2_env.version || 'unknown',
+            },
+            timestamp: new Date().toISOString(),
+          });
+        } else {
+          res.status(404).json({
+            success: false,
+            error: 'sbc-system process not found',
+          });
+        }
+      } catch (parseError) {
+        res.status(500).json({
+          success: false,
+          error: 'Failed to parse PM2 data',
         });
-    }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 });
 
 // Simple log viewer page
 app.get('/logs', (req, res) => {
-    res.send(`
+  res.send(`
 <!DOCTYPE html>
 <html>
 <head>
@@ -790,71 +837,73 @@ app.get('/logs', (req, res) => {
 
 // Initialize services
 async function initializeServices() {
+  try {
+    logger.info('[STARTUP] Initializing Small Business Care System...');
+
+    // Initialize database connection
+    logger.info('[STARTUP] Connecting to Supabase...');
+    await database.connect();
+
+    // Check/create database tables
     try {
-        logger.info('[STARTUP] Initializing Small Business Care System...');
-        
-        // Initialize database connection
-        logger.info('[STARTUP] Connecting to Supabase...');
-        await database.connect();
-        
-        // Check/create database tables
-        try {
-            await database.createTables();
-        } catch (error) {
-            logger.warn('[STARTUP] Database tables check failed (this is normal on first run):', error.message);
-        }
-        
-        // Initialize vector service
-        logger.info('[STARTUP] Initializing vector service...');
-        await vectorService.initialize();
-        
-        // Initialize Twilio WhatsApp service
-        logger.info('[STARTUP] Initializing Twilio WhatsApp service...');
-        await twilioWhatsAppService.initialize();
-        
-        // Initialize backup system
-        if (process.env.NODE_ENV === 'production') {
-            logger.info('[STARTUP] Initializing backup system...');
-            backupManager.scheduleBackups();
-        } else {
-            logger.info('[STARTUP] Backup system disabled in development mode');
-        }
-        
-        logger.success('[STARTUP] All services initialized successfully!');
-        
+      await database.createTables();
     } catch (error) {
-        logger.error('[STARTUP] Failed to initialize services:', error);
-        
-        // Don't exit completely - let the app run but log the error
-        logger.warn('[STARTUP] Some services may not be available');
+      logger.warn(
+        '[STARTUP] Database tables check failed (this is normal on first run):',
+        error.message
+      );
+
+    // Initialize vector service
+    logger.info('[STARTUP] Initializing vector service...');
+    await vectorService.initialize();
+
+    // Initialize Twilio WhatsApp service
+    logger.info('[STARTUP] Initializing Twilio WhatsApp service...');
+    await twilioWhatsAppService.initialize();
+
+    // Initialize backup system
+    if (process.env.NODE_ENV === 'production') {
+      logger.info('[STARTUP] Initializing backup system...');
+      backupManager.scheduleBackups();
+    } else {
+      logger.info('[STARTUP] Backup system disabled in development mode');
     }
+
+    logger.success('[STARTUP] All services initialized successfully!');
+
+    } catch (error) {
+    logger.error('[STARTUP] Failed to initialize services:', error);
+
+    // Don't exit completely - let the app run but log the error
+    logger.warn('[STARTUP] Some services may not be available');
+  }
 }
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
-    logger.info('[SHUTDOWN] Received SIGTERM, shutting down gracefully...');
-    
-    try {
-        await database.disconnect();
-        logger.info('[SHUTDOWN] Database disconnected');
-    } catch (error) {
-        logger.error('[SHUTDOWN] Error disconnecting database:', error);
-    }
-    
-    process.exit(0);
+  logger.info('[SHUTDOWN] Received SIGTERM, shutting down gracefully...');
+
+  try {
+    await database.disconnect();
+    logger.info('[SHUTDOWN] Database disconnected');
+  } catch (error) {
+    logger.error('[SHUTDOWN] Error disconnecting database:', error);
+  }
+
+  process.exit(0);
 });
 
 process.on('SIGINT', async () => {
-    logger.info('[SHUTDOWN] Received SIGINT, shutting down gracefully...');
-    
-    try {
-        await database.disconnect();
-        logger.info('[SHUTDOWN] Database disconnected');
-    } catch (error) {
-        logger.error('[SHUTDOWN] Error disconnecting database:', error);
-    }
-    
-    process.exit(0);
+  logger.info('[SHUTDOWN] Received SIGINT, shutting down gracefully...');
+
+  try {
+    await database.disconnect();
+    logger.info('[SHUTDOWN] Database disconnected');
+  } catch (error) {
+    logger.error('[SHUTDOWN] Error disconnecting database:', error);
+  }
+
+  process.exit(0);
 });
 
 // Error handling middleware (must be last)
@@ -863,9 +912,9 @@ app.use(globalErrorHandler);
 
 // Start the server
 app.listen(appConfig.port, async () => {
-    logger.success(`[SERVER] Server running on port ${appConfig.port}`);
-    logger.info(`[SERVER] Environment: ${config.getEnvironment()}`);
-    
-    // Initialize services after server starts
-    await initializeServices();
+  logger.success(`[SERVER] Server running on port ${appConfig.port}`);
+  logger.info(`[SERVER] Environment: ${config.getEnvironment()}`);
+
+  // Initialize services after server starts
+  await initializeServices();
 });

@@ -16,13 +16,13 @@ class TestWorld {
       businesses: new Map(),
       customers: new Map(),
       knowledgeEntries: new Map(),
-      webhookRequests: []
+      webhookRequests: [],
     };
     this.mockServices = {
       openai: null,
       pinecone: null,
       twilio: null,
-      supabase: null
+      supabase: null,
     };
     this.startTime = null;
     this.endTime = null;
@@ -57,7 +57,7 @@ class TestWorld {
   async makeRequest(method, path, data = null) {
     const request = supertest(this.app);
     this.startTime = Date.now();
-    
+
     try {
       switch (method.toLowerCase()) {
         case 'get':
@@ -80,7 +80,7 @@ class TestWorld {
     } finally {
       this.endTime = Date.now();
     }
-    
+
     return this.response;
   }
 
@@ -90,16 +90,16 @@ class TestWorld {
 
   // Mock service helpers
   setupOpenAIMock() {
-    this.mockServices.openai = nock('https://api.openai.com')
-      .persist()
-      .defaultReplyHeaders({
-        'content-type': 'application/json',
-      });
+    this.mockServices.openai = nock('https://api.openai.com').persist().defaultReplyHeaders({
+      'content-type': 'application/json',
+    });
     return this.mockServices.openai;
   }
 
   setupPineconeMock() {
-    this.mockServices.pinecone = nock('https://sbc-businessdata-aped-4627-b74a.svc.aped-4627-b74a.pinecone.io')
+    this.mockServices.pinecone = nock(
+      'https://sbc-businessdata-aped-4627-b74a.svc.aped-4627-b74a.pinecone.io'
+    )
       .persist()
       .defaultReplyHeaders({
         'content-type': 'application/json',
@@ -108,11 +108,9 @@ class TestWorld {
   }
 
   setupTwilioMock() {
-    this.mockServices.twilio = nock('https://api.twilio.com')
-      .persist()
-      .defaultReplyHeaders({
-        'content-type': 'application/json',
-      });
+    this.mockServices.twilio = nock('https://api.twilio.com').persist().defaultReplyHeaders({
+      'content-type': 'application/json',
+    });
     return this.mockServices.twilio;
   }
 
@@ -142,9 +140,9 @@ class TestWorld {
       Body: 'Test message',
       NumMedia: '0',
       MessageType: 'text',
-      ProfileName: 'Test User'
+      ProfileName: 'Test User',
     };
-    
+
     return { ...defaultWebhook, ...data };
   }
 

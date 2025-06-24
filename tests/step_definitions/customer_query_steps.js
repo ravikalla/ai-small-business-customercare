@@ -1,17 +1,20 @@
 const { Given, When, Then } = require('@cucumber/cucumber');
 
 // Given steps
-Given('there is a registered business {string} with ID {string}', function (businessName, businessId) {
-  const business = {
-    businessId,
-    businessName,
-    ownerPhone: '+15551111111',
-    whatsappNumber: 'whatsapp:+14155238886',
-    registeredAt: new Date().toISOString(),
-    status: 'active'
-  };
-  this.addTestBusiness(businessId, business);
-});
+Given(
+  'there is a registered business {string} with ID {string}',
+  function (businessName, businessId) {
+    const business = {
+      businessId,
+      businessName,
+      ownerPhone: '+15551111111',
+      whatsappNumber: 'whatsapp:+14155238886',
+      registeredAt: new Date().toISOString(),
+      status: 'active',
+    };
+    this.addTestBusiness(businessId, business);
+  }
+);
 
 Given('the business has knowledge about:', function (dataTable) {
   const entries = dataTable.hashes();
@@ -23,7 +26,7 @@ Given('the business has knowledge about:', function (dataTable) {
       type: 'text',
       content: entry.content,
       addedAt: new Date().toISOString(),
-      preview: entry.content.substring(0, 50)
+      preview: entry.content.substring(0, 50),
     };
     this.addKnowledgeEntry(knowledgeId, knowledge);
   });
@@ -32,12 +35,12 @@ Given('the business has knowledge about:', function (dataTable) {
 Given('I am a customer with phone number {string}', function (phoneNumber) {
   this.currentUser = {
     phoneNumber,
-    role: 'customer'
+    role: 'customer',
   };
   this.addTestCustomer(phoneNumber, {
     phoneNumber,
     role: 'customer',
-    queryHistory: []
+    queryHistory: [],
   });
 });
 
@@ -47,12 +50,12 @@ Given('there are {int} customers with different phone numbers', function (count)
     const phoneNumber = `+155500${String(i).padStart(5, '0')}`;
     this.multipleCustomers.push({
       phoneNumber,
-      role: 'customer'
+      role: 'customer',
     });
     this.addTestCustomer(phoneNumber, {
       phoneNumber,
       role: 'customer',
-      queryHistory: []
+      queryHistory: [],
     });
   }
 });
@@ -62,11 +65,11 @@ When('they all send queries to {string} simultaneously', async function (busines
   const promises = this.multipleCustomers.map(customer => {
     const webhookData = this.createTwilioWebhook({
       From: customer.phoneNumber,
-      Body: `!business ${businessId} What are your hours?`
+      Body: `!business ${businessId} What are your hours?`,
     });
     return this.makeRequest('POST', '/api/webhook/whatsapp', webhookData);
   });
-  
+
   this.multipleResponses = await Promise.all(promises);
 });
 

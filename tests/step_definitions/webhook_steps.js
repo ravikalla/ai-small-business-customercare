@@ -14,20 +14,20 @@ Given('the system can receive webhook requests', function () {
 Given('I receive a Twilio webhook with:', function (dataTable) {
   const webhookData = {};
   const rows = dataTable.rawTable;
-  
+
   // Parse the data table rows
   for (let i = 0; i < rows.length; i++) {
     const key = rows[i][0];
     const value = rows[i][1];
     webhookData[key] = value;
   }
-  
+
   this.webhookData = webhookData;
 });
 
 Given('I have a valid Twilio webhook request', function () {
   this.webhookData = this.createTwilioWebhook({
-    Body: 'Test webhook message'
+    Body: 'Test webhook message',
   });
 });
 
@@ -39,7 +39,7 @@ Given('the webhook signature is invalid', function () {
 Given('I receive a Twilio webhook missing required fields:', function (dataTable) {
   const webhookData = {};
   const rows = dataTable.rawTable;
-  
+
   // Parse the data table rows, only include non-empty values
   for (let i = 0; i < rows.length; i++) {
     const key = rows[i][0];
@@ -48,7 +48,7 @@ Given('I receive a Twilio webhook missing required fields:', function (dataTable
       webhookData[key] = value;
     }
   }
-  
+
   this.webhookData = webhookData;
 });
 
@@ -58,7 +58,7 @@ Given('I am sending webhooks from the same phone number', function () {
 
 Given('I receive a webhook that requires AI processing', function () {
   this.webhookData = this.createTwilioWebhook({
-    Body: '!business testbiz_123 What are your hours?'
+    Body: '!business testbiz_123 What are your hours?',
   });
 });
 
@@ -75,13 +75,13 @@ Given('I am a registered business owner with phone {string}', function (phoneNum
     ownerPhone: phoneNumber,
     whatsappNumber: 'whatsapp:+14155238886',
     registeredAt: new Date().toISOString(),
-    status: 'active'
+    status: 'active',
   };
   this.addTestBusiness(businessId, business);
   this.currentUser = {
     phoneNumber,
     role: 'business_owner',
-    businessId
+    businessId,
   };
 });
 
@@ -92,14 +92,14 @@ Given('there is a business with ID {string}', function (businessId) {
     ownerPhone: '+15551111111',
     whatsappNumber: 'whatsapp:+14155238886',
     registeredAt: new Date().toISOString(),
-    status: 'active'
+    status: 'active',
   };
   this.addTestBusiness(businessId, business);
 });
 
 Given('I receive a webhook with a complex customer query', function () {
   this.webhookData = this.createTwilioWebhook({
-    Body: '!business testbiz_123 Can you tell me about your vegetarian options, delivery areas, and current promotions?'
+    Body: '!business testbiz_123 Can you tell me about your vegetarian options, delivery areas, and current promotions?',
   });
 });
 
@@ -113,7 +113,7 @@ Given('I receive a webhook with media attachment', function () {
     Body: 'Document attachment',
     NumMedia: '1',
     MediaUrl0: 'https://api.twilio.com/2010-04-01/Accounts/AC.../Messages/MM.../Media/ME...',
-    MediaContentType0: 'application/pdf'
+    MediaContentType0: 'application/pdf',
   });
 });
 
@@ -121,14 +121,14 @@ Given('the sender is a registered business owner', function () {
   this.currentUser = {
     phoneNumber: '+15551234567',
     role: 'business_owner',
-    businessId: 'testbiz_123'
+    businessId: 'testbiz_123',
   };
 });
 
 Given('the webhook contains a PDF document', function () {
   this.documentAttachment = {
     type: 'application/pdf',
-    url: 'https://api.twilio.com/2010-04-01/Accounts/AC.../Messages/MM.../Media/ME...'
+    url: 'https://api.twilio.com/2010-04-01/Accounts/AC.../Messages/MM.../Media/ME...',
   };
 });
 
@@ -147,18 +147,18 @@ When('I send {int} webhook requests within {int} minute', async function (reques
   for (let i = 0; i < requestCount; i++) {
     const webhookData = this.createTwilioWebhook({
       From: this.samePhoneNumber,
-      Body: `Test message ${i}`
+      Body: `Test message ${i}`,
     });
     promises.push(this.makeRequest('POST', this.webhookEndpoint, webhookData));
   }
-  
+
   this.rateLimitResponses = await Promise.all(promises);
 });
 
 When('I send a webhook with message {string}', async function (message) {
   const webhookData = this.createTwilioWebhook({
     From: this.currentUser ? this.currentUser.phoneNumber : '+15551234567',
-    Body: message
+    Body: message,
   });
   await this.makeRequest('POST', this.webhookEndpoint, webhookData);
 });

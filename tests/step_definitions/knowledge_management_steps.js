@@ -8,13 +8,13 @@ Given('I am a registered business owner with business ID {string}', function (bu
     ownerPhone: '+15551234567',
     whatsappNumber: 'whatsapp:+14155238886',
     registeredAt: new Date().toISOString(),
-    status: 'active'
+    status: 'active',
   };
   this.addTestBusiness(businessId, business);
   this.currentUser = {
     phoneNumber: '+15551234567',
     role: 'business_owner',
-    businessId
+    businessId,
   };
 });
 
@@ -32,7 +32,7 @@ Given('I am authenticated as a business owner', function () {
   this.currentUser = {
     phoneNumber: '+15551234567',
     role: 'business_owner',
-    businessId: 'testbiz_1234'
+    businessId: 'testbiz_1234',
   };
 });
 
@@ -41,7 +41,7 @@ Given('I have a PDF document with menu information', function () {
     filename: 'menu.pdf',
     content: 'Sample menu content with various dishes and prices',
     type: 'application/pdf',
-    size: 1024
+    size: 1024,
   };
 });
 
@@ -55,7 +55,7 @@ Given('I have added several knowledge entries:', function (dataTable) {
       type: entry.type,
       content: entry.content,
       addedAt: new Date().toISOString(),
-      preview: entry.content.substring(0, 50)
+      preview: entry.content.substring(0, 50),
     };
     this.addKnowledgeEntry(knowledgeId, knowledge);
   });
@@ -68,7 +68,7 @@ Given('I have a knowledge entry with ID {string}', function (knowledgeId) {
     type: 'text',
     content: 'Sample knowledge content',
     addedAt: new Date().toISOString(),
-    preview: 'Sample knowledge content'
+    preview: 'Sample knowledge content',
   };
   this.addKnowledgeEntry(knowledgeId, knowledge);
 });
@@ -83,7 +83,7 @@ Given('I have knowledge entries about:', function (dataTable) {
       type: 'text',
       content: entry.content,
       addedAt: new Date().toISOString(),
-      preview: entry.content.substring(0, 50)
+      preview: entry.content.substring(0, 50),
     };
     this.addKnowledgeEntry(knowledgeId, knowledge);
   });
@@ -93,7 +93,7 @@ Given('I have knowledge entries about:', function (dataTable) {
 When('I POST to {string} with the document', async function (endpoint) {
   const formData = {
     businessId: 'testbiz_1234',
-    document: this.testDocument
+    document: this.testDocument,
   };
   await this.makeRequest('POST', endpoint, formData);
 });
@@ -107,7 +107,7 @@ When('I add knowledge: {string}', async function (content) {
   const message = `!add ${content}`;
   const webhookData = this.createTwilioWebhook({
     From: this.currentUser.phoneNumber,
-    Body: message
+    Body: message,
   });
   await this.makeRequest('POST', '/api/webhook/whatsapp', webhookData);
 });
@@ -115,7 +115,7 @@ When('I add knowledge: {string}', async function (content) {
 When('I list my knowledge entries', async function () {
   const webhookData = this.createTwilioWebhook({
     From: this.currentUser.phoneNumber,
-    Body: '!list'
+    Body: '!list',
   });
   await this.makeRequest('POST', '/api/webhook/whatsapp', webhookData);
 });
@@ -124,7 +124,7 @@ When('I search for {string}', async function (query) {
   const searchData = {
     businessId: this.currentUser.businessId,
     query,
-    topK: 3
+    topK: 3,
   };
   await this.makeRequest('POST', '/api/knowledge/search', searchData);
 });
@@ -136,7 +136,7 @@ When('I delete the first knowledge entry', async function () {
     const message = `!delete ${firstEntryId}`;
     const webhookData = this.createTwilioWebhook({
       From: this.currentUser.phoneNumber,
-      Body: message
+      Body: message,
     });
     await this.makeRequest('POST', '/api/webhook/whatsapp', webhookData);
   }
@@ -216,7 +216,7 @@ Then('the response should contain relevant knowledge entries', function () {
 Then('the entries should be ranked by relevance score', function () {
   const results = this.response.body.results;
   for (let i = 1; i < results.length; i++) {
-    this.expect(results[i].score).to.be.at.most(results[i-1].score);
+    this.expect(results[i].score).to.be.at.most(results[i - 1].score);
   }
 });
 

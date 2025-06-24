@@ -18,21 +18,21 @@ class ConfigLoader {
     try {
       const configPath = path.join(__dirname, 'environments', `${this.env}.js`);
       const config = require(configPath);
-      
+
       // Validate required configuration
       this.validateConfig(config);
-      
+
       return config;
     } catch (error) {
       console.error(`Failed to load configuration for environment: ${this.env}`);
       console.error(error.message);
-      
+
       // Fallback to development config
       if (this.env !== 'development') {
         console.warn('Falling back to development configuration');
         return require('./environments/development.js');
       }
-      
+
       throw error;
     }
   }
@@ -42,10 +42,7 @@ class ConfigLoader {
    * @param {Object} config - Configuration object to validate
    */
   validateConfig(config) {
-    const required = [
-      'app.port',
-      'logging.level'
-    ];
+    const required = ['app.port', 'logging.level'];
 
     for (const field of required) {
       const value = this.getNestedValue(config, field);
@@ -68,7 +65,7 @@ class ConfigLoader {
     const productionRequired = [
       'ai.openai.apiKey',
       'database.supabase.url',
-      'messaging.twilio.accountSid'
+      'messaging.twilio.accountSid',
     ];
 
     for (const field of productionRequired) {

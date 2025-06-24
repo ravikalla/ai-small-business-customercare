@@ -9,12 +9,12 @@
 class AppError extends Error {
   constructor(message, statusCode = 500, isOperational = true) {
     super(message);
-    
+
     this.name = this.constructor.name;
     this.statusCode = statusCode;
     this.isOperational = isOperational;
     this.timestamp = new Date().toISOString();
-    
+
     // Capture stack trace excluding the constructor call
     Error.captureStackTrace(this, this.constructor);
   }
@@ -28,7 +28,7 @@ class AppError extends Error {
       message: this.message,
       statusCode: this.statusCode,
       timestamp: this.timestamp,
-      ...(process.env.NODE_ENV === 'development' && { stack: this.stack })
+      ...(process.env.NODE_ENV === 'development' && { stack: this.stack }),
     };
   }
 }
@@ -49,7 +49,7 @@ class ValidationError extends AppError {
       ...super.toJSON(),
       type: this.type,
       field: this.field,
-      value: this.value
+      value: this.value,
     };
   }
 }
@@ -71,7 +71,7 @@ class NotFoundError extends AppError {
       ...super.toJSON(),
       type: this.type,
       resource: this.resource,
-      resourceId: this.resourceId
+      resourceId: this.resourceId,
     };
   }
 }
@@ -88,7 +88,7 @@ class AuthenticationError extends AppError {
   toJSON() {
     return {
       ...super.toJSON(),
-      type: this.type
+      type: this.type,
     };
   }
 }
@@ -105,7 +105,7 @@ class AuthorizationError extends AppError {
   toJSON() {
     return {
       ...super.toJSON(),
-      type: this.type
+      type: this.type,
     };
   }
 }
@@ -126,9 +126,10 @@ class ExternalServiceError extends AppError {
       ...super.toJSON(),
       type: this.type,
       service: this.service,
-      ...(process.env.NODE_ENV === 'development' && this.originalError && {
-        originalError: this.originalError.message
-      })
+      ...(process.env.NODE_ENV === 'development' &&
+        this.originalError && {
+          originalError: this.originalError.message,
+        }),
     };
   }
 }
@@ -145,7 +146,7 @@ class RateLimitError extends AppError {
   toJSON() {
     return {
       ...super.toJSON(),
-      type: this.type
+      type: this.type,
     };
   }
 }
@@ -166,9 +167,10 @@ class DatabaseError extends AppError {
       ...super.toJSON(),
       type: this.type,
       operation: this.operation,
-      ...(process.env.NODE_ENV === 'development' && this.originalError && {
-        originalError: this.originalError.message
-      })
+      ...(process.env.NODE_ENV === 'development' &&
+        this.originalError && {
+          originalError: this.originalError.message,
+        }),
     };
   }
 }
@@ -181,5 +183,5 @@ module.exports = {
   AuthorizationError,
   ExternalServiceError,
   RateLimitError,
-  DatabaseError
+  DatabaseError,
 };

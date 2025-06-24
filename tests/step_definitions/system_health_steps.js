@@ -15,18 +15,18 @@ When('I check external service connectivity', async function () {
   this.externalServices = {
     database: this.response.body.database,
     vectorDB: this.response.body.vectorDB,
-    twilio: this.response.body.twilio
+    twilio: this.response.body.twilio,
   };
 });
 
 When('I simulate {int} concurrent health check requests', async function (requestCount) {
   const startTime = Date.now();
   const promises = [];
-  
+
   for (let i = 0; i < requestCount; i++) {
     promises.push(this.makeRequest('GET', '/health'));
   }
-  
+
   this.concurrentResponses = await Promise.all(promises);
   this.loadTestDuration = Date.now() - startTime;
 });
@@ -53,7 +53,7 @@ When('I make requests to knowledge endpoints', async function () {
   const searchData = {
     businessId: 'testbiz_123',
     query: 'test query',
-    topK: 3
+    topK: 3,
   };
   await this.makeRequest('POST', '/api/knowledge/search', searchData);
 });
@@ -144,9 +144,9 @@ Then('the response should include application metrics:', function (dataTable) {
   expectedMetrics.forEach(row => {
     const metric = row.metric;
     const type = row.type;
-    
+
     this.expect(this.response.body.metrics[metric]).to.exist;
-    
+
     switch (type) {
       case 'number':
         this.expect(this.response.body.metrics[metric]).to.be.a('number');
@@ -179,9 +179,9 @@ Then('the response should include cache statistics:', function (dataTable) {
   expectedStats.forEach(row => {
     const metric = row.metric;
     const type = row.type;
-    
+
     this.expect(this.response.body.stats[metric]).to.exist;
-    
+
     switch (type) {
       case 'number':
         this.expect(this.response.body.stats[metric]).to.be.a('number');

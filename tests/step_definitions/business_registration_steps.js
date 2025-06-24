@@ -12,7 +12,7 @@ Given('the database is clean', async function () {
 Given('I am a business owner with phone number {string}', function (phoneNumber) {
   this.currentUser = {
     phoneNumber,
-    role: 'business_owner'
+    role: 'business_owner',
   };
 });
 
@@ -24,7 +24,7 @@ Given('I have already registered a business named {string}', function (businessN
     ownerPhone: this.currentUser.phoneNumber,
     whatsappNumber: 'whatsapp:+14155238886',
     registeredAt: new Date().toISOString(),
-    status: 'active'
+    status: 'active',
   };
   this.addTestBusiness(businessId, business);
 });
@@ -33,7 +33,7 @@ Given('I have valid business registration data', function () {
   this.registrationData = {
     businessName: 'Test Restaurant',
     whatsappNumber: 'whatsapp:+14155238886',
-    ownerPhone: '+15551234567'
+    ownerPhone: '+15551234567',
   };
 });
 
@@ -41,23 +41,23 @@ Given('I have valid business registration data', function () {
 When('I send a WhatsApp message {string}', async function (message) {
   const webhookData = this.createTwilioWebhook({
     From: this.currentUser.phoneNumber,
-    Body: message
+    Body: message,
   });
-  
+
   await this.makeRequest('POST', '/api/webhook/whatsapp', webhookData);
 });
 
 When('I POST to {string} with:', async function (endpoint, dataTable) {
   const data = {};
   const rows = dataTable.rawTable;
-  
+
   // Parse the data table rows
   for (let i = 0; i < rows.length; i++) {
     const key = rows[i][0];
     const value = rows[i][1];
     data[key] = value;
   }
-  
+
   await this.makeRequest('POST', endpoint, data);
 });
 
