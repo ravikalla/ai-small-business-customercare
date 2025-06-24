@@ -68,7 +68,47 @@ app.use(cors(securityConfig.cors));
 app.use(sanitizeInput);
 
 // API Documentation with Swagger
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
+try {
+  logger.info('Setting up Swagger documentation...');
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
+  logger.info('Swagger documentation setup complete');
+} catch (error) {
+  logger.error('Failed to setup Swagger documentation:', error);
+  // Fallback endpoint if Swagger setup fails
+  app.get('/api-docs', (req, res) => {
+    res.status(500).json({
+      error: 'Swagger documentation unavailable',
+      message: 'There was an error setting up the API documentation',
+      debug_url: `${req.protocol}://${req.get('host')}/debug/swagger`,
+      timestamp: new Date().toISOString()
+    });
+  });
+}
+
+// Debug endpoint to check Swagger specs
+app.get('/debug/swagger', (req, res) => {
+  try {
+    res.json({
+      message: 'Swagger configuration debug',
+      swagger_url: `${req.protocol}://${req.get('host')}/api-docs`,
+      specs_generated: !!specs,
+      specs_info: specs ? {
+        openapi: specs.openapi,
+        title: specs.info?.title,
+        version: specs.info?.version,
+        paths_count: Object.keys(specs.paths || {}).length,
+        tags_count: specs.tags?.length || 0
+      } : null,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to generate Swagger debug info',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
 // Debug endpoint to list all available routes
 app.get('/debug/routes', (req, res) => {
@@ -76,6 +116,7 @@ app.get('/debug/routes', (req, res) => {
     'GET / - API information',
     'GET /health - Health check', 
     'GET /api-docs - Swagger API Documentation',
+    'GET /debug/swagger - Swagger configuration debug',
     'GET /api/businesses - List businesses',
     'POST /api/businesses - Create business',
     'GET /api/twilio/status - Twilio status',
