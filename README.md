@@ -2,7 +2,7 @@
 
 A Node.js application that enables small businesses to create AI-powered WhatsApp chatbots using their own knowledge base.
 
-**Author:** Ravi Kalla (ravi2523096+sbc@gmail.com)
+**Author:** Ravi Kalla | [www.ravikalla.com](https://www.ravikalla.com) | ravi2523096+sbc@gmail.com
 
 ## Features
 
@@ -394,3 +394,15 @@ See our [Issues](https://github.com/ravikalla/ai-small-business-customercare/iss
 3. **Blue/Green Deployments** - Zero-downtime deployment pipeline
 4. **Multi-language Support** - Localized AI responses for global markets
 5. **Enterprise SSO** - OAuth 2.0 integration for team-based access
+
+---
+
+## 👨‍💻 About the Developer
+
+**Ravi Kalla** - Full Stack Developer & AI Solutions Architect
+
+🌐 **Website:** [www.ravikalla.com](https://www.ravikalla.com)  
+📧 **Contact:** ravi2523096+sbc@gmail.com  
+💼 **GitHub:** [github.com/ravikalla](https://github.com/ravikalla)
+
+*Passionate about building AI-powered solutions that help small businesses grow and scale efficiently.*

@@ -3,12 +3,14 @@
  * Author: Ravi Kalla <ravi2523096+sbc@gmail.com>
  */
 
+const crypto = require('crypto');
 const express = require('express');
 const router = express.Router();
 const logger = require('../utils/logger');
 const rateLimiter = require('../utils/rateLimiter');
 const validator = require('../utils/validator');
 const twilioWhatsAppService = require('../services/twilioWhatsAppService');
+const validateWhatsAppSignature = require('../middleware/whatsappSignature');
 const businessService = require('../services/businessService');
 const knowledgeService = require('../services/knowledgeService');
 const aiService = require('../services/aiService');
@@ -80,7 +82,7 @@ class WebhookHandler {
      *               type: string
      *               example: "Internal Server Error"
      */
-    router.post('/twilio/whatsapp', this.handleTwilioWebhook.bind(this));
+    router.post('/twilio/whatsapp', validateWhatsAppSignature, this.handleTwilioWebhook.bind(this));
 
     /**
      * @swagger
@@ -183,20 +185,11 @@ class WebhookHandler {
   }
 
   async handleTwilioWebhook(req, res) {
+    const requestId = crypto.randomBytes(8).toString('hex');
     try {
-      logger.debug('[WEBHOOK] Received Twilio WhatsApp webhook');
+      logger.debug(`[WEBHOOK][${requestId}] Received Twilio WhatsApp webhook`);
 
-      // Validate webhook signature for security
-      const signature = req.headers['x-twilio-signature'];
-      const url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-
-      if (
-        process.env.NODE_ENV === 'production' &&
-        !twilioWhatsAppService.validateWebhookSignature(signature, url, req.body)
-      ) {
-        logger.warn('[WEBHOOK] Invalid webhook signature');
-        return res.status(403).send('Forbidden');
-      }
+      
 
       // Extract message data from Twilio webhook
       const {
@@ -210,12 +203,12 @@ class WebhookHandler {
         ProfileName: profileName,
       } = req.body;
 
-      logger.info(`[WEBHOOK] Message from ${from} to ${to}: "${body || '[Media]'}"`);
+      logger.info(`[WEBHOOK][${requestId}] Message from ${from} to ${to}: "${body || '[Media]'}"`);
 
       // Global rate limiting
       const phoneNumber = from.replace('whatsapp:', '');
       if (!rateLimiter.checkGlobal()) {
-        logger.warn('[WEBHOOK] Global rate limit exceeded');
+        logger.warn(`[WEBHOOK][${requestId}] Global rate limit exceeded`);
         await this.sendResponse(
           from,
           to,
@@ -224,7 +217,6 @@ class WebhookHandler {
         return res.status(200).send('OK');
       }
 
-      // Route message to appropriate business handler
       await this.routeMessage({
         from,
         to,
@@ -235,24 +227,25 @@ class WebhookHandler {
         mediaContentType,
         profileName,
         phoneNumber,
+        requestId
       });
 
       res.status(200).send('OK');
     } catch (error) {
-      logger.error('[WEBHOOK] Error handling Twilio webhook:', error);
+      logger.error(`[WEBHOOK][${requestId}] Error handling Twilio webhook:`, error);
       res.status(500).send('Internal Server Error');
     }
   }
 
   async routeMessage(messageData) {
-    const { from, to, body, phoneNumber } = messageData;
+    const { from, to, body, phoneNumber, requestId } = messageData;
 
     try {
       // Find business by WhatsApp number (the 'to' field)
       const business = twilioWhatsAppService.getBusinessByWhatsAppNumber(to);
 
       if (!business) {
-        logger.warn(`[WEBHOOK] No business found for WhatsApp number ${to}`);
+        logger.warn(`[WEBHOOK][${requestId}] No business found for WhatsApp number ${to}`);
         await this.sendResponse(
           from,
           to,
@@ -262,7 +255,7 @@ class WebhookHandler {
       }
 
       logger.debug(
-        `[WEBHOOK] Routing message to business: ${business.businessName} (${business.businessId})`
+        `[WEBHOOK][${requestId}] Routing message to business: ${business.businessName} (${business.businessId})`
       );
 
       // Check if sender is the business owner
@@ -272,7 +265,7 @@ class WebhookHandler {
         await this.handleCustomerMessage(messageData, business);
       }
     } catch (error) {
-      logger.error('[WEBHOOK] Error routing message:', error);
+      logger.error(`[WEBHOOK][${requestId}] Error routing message:`, error);
       await this.sendResponse(
         from,
         to,
@@ -282,10 +275,10 @@ class WebhookHandler {
   }
 
   async handleBusinessOwnerMessage(messageData, business) {
-    const { from, to, body, numMedia, mediaUrl, phoneNumber } = messageData;
+    const { from, to, body, numMedia, mediaUrl, phoneNumber, requestId } = messageData;
 
     try {
-      logger.info(`[WEBHOOK] Business owner message from ${business.businessName}`);
+      logger.info(`[WEBHOOK][${requestId}] Business owner message from ${business.businessName}`);
 
       // Parse command using the existing command parser
       const parsedCommand = this.parseCommand(body);
@@ -304,7 +297,7 @@ class WebhookHandler {
       }
     } catch (error) {
       logger.error(
-        `[WEBHOOK] Error handling business owner message from ${business.businessName}:`,
+        `[WEBHOOK][${requestId}] Error handling business owner message from ${business.businessName}:`,
         error
       );
       await this.sendResponse(from, to, 'Error processing your command. Please try again.');
@@ -312,10 +305,10 @@ class WebhookHandler {
   }
 
   async handleCustomerMessage(messageData, business) {
-    const { from, to, body, phoneNumber } = messageData;
+    const { from, to, body, phoneNumber, requestId } = messageData;
 
     try {
-      logger.info(`[WEBHOOK] Customer message for ${business.businessName}: "${body}"`);
+      logger.info(`[WEBHOOK][${requestId}] Customer message for ${business.businessName}: "${body}"`);
 
       // Customer rate limiting
       if (!rateLimiter.checkCustomer(phoneNumber)) {
@@ -332,7 +325,7 @@ class WebhookHandler {
       // Validate and sanitize customer query
       const queryValidation = validator.validateAndSanitize('customerQuery', body);
       if (!queryValidation.valid) {
-        logger.warn(`[WEBHOOK] Invalid customer query: ${queryValidation.error}`);
+        logger.warn(`[WEBHOOK][${requestId}] Invalid customer query: ${queryValidation.error}`);
         await this.sendResponse(from, to, 'Please send a valid question about our business.');
         return;
       }
@@ -346,15 +339,15 @@ class WebhookHandler {
       await this.sendResponse(from, to, '🤔 Let me search our knowledge base...');
 
       // Generate AI response
-      const response = await aiService.generateResponse(query, business.businessId);
+      const response = await aiService.generateResponse(query, business.businessId, { requestId });
 
       // Send response to customer
       await this.sendResponse(from, to, response);
 
-      logger.success(`[WEBHOOK] Customer query processed for ${business.businessName}`);
+      logger.success(`[WEBHOOK][${requestId}] Customer query processed for ${business.businessName}`);
     } catch (error) {
       logger.error(
-        `[WEBHOOK] Error handling customer message for ${business.businessName}:`,
+        `[WEBHOOK][${requestId}] Error handling customer message for ${business.businessName}:`,
         error
       );
       await this.sendResponse(
