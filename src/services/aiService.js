@@ -26,39 +26,40 @@ class AIService {
     }
   }
 
-  async generateResponse(query, businessId) {
+  async generateResponse(query, businessId, options = {}) {
+    const { model = process.env.OPENAI_DEFAULT_MODEL || 'gpt-3.5-turbo', requestId } = options;
     try {
-      logger.info(`[AI] Generating response for business ${businessId}: "${query}"`);
+      logger.info(`[AI][${requestId}] Generating response for business ${businessId} using model ${model}: "${query}"`);
 
       if (this.isTestEnvironment) {
-        logger.info(`[AI] Test mode - returning mock response for query: "${query}"`);
+        logger.info(`[AI][${requestId}] Test mode - returning mock response for query: "${query}"`);
         return `Test AI response for business ${businessId}: This is a mock response to the query "${query}".`;
       }
 
       // Check cache first
       const cachedResponse = cache.getCachedResponse(businessId, query);
       if (cachedResponse) {
-        logger.info(`[AI] Using cached response for business ${businessId}`);
+        logger.info(`[AI][${requestId}] Using cached response for business ${businessId}`);
         return cachedResponse;
       }
 
-      logger.debug(`[AI] Searching for relevant documents...`);
+      logger.debug(`[AI][${requestId}] Searching for relevant documents...`);
       const relevantDocs = await vectorService.searchSimilar(query, businessId, 3);
 
       if (relevantDocs.length === 0) {
-        logger.warn(`[AI] No relevant documents found for business ${businessId}`);
+        logger.warn(`[AI][${requestId}] No relevant documents found for business ${businessId}`);
         return "I don't have specific information about that in the business knowledge base. Please contact the business directly or try asking a different question.";
       }
 
-      logger.info(`[AI] Found ${relevantDocs.length} relevant documents for context`);
+      logger.info(`[AI][${requestId}] Found ${relevantDocs.length} relevant documents for context`);
       relevantDocs.forEach((doc, i) => {
-        logger.debug(`[AI] Doc ${i + 1}: Score=${doc.score.toFixed(3)}, Source=${doc.filename}`);
+        logger.debug(`[AI][${requestId}] Doc ${i + 1}: Score=${doc.score.toFixed(3)}, Source=${doc.filename}`);
       });
 
       const context = relevantDocs.map(doc => doc.content).join('\n\n');
 
       logger.debug(
-        `[AI] Built context: ${context.length} characters from ${relevantDocs.length} sources`
+        `[AI][${requestId}] Built context: ${context.length} characters from ${relevantDocs.length} sources`
       );
 
       const prompt = `You are a helpful AI assistant for a small business. Based STRICTLY on the following information from the business's knowledge base, please answer the customer's question accurately.
@@ -79,13 +80,13 @@ CRITICAL Instructions:
 
 Response:`;
 
-      logger.debug(`[AI] Sending request to OpenAI with prompt (${prompt.length} characters)`);
+      logger.debug(`[AI][${requestId}] Sending request to OpenAI with prompt (${prompt.length} characters)`);
       const completion = await RetryManager.withCircuitBreaker(
         async () => {
           return await RetryManager.withRetry(
             async () => {
               return await this.openai.chat.completions.create({
-                model: 'gpt-3.5-turbo',
+                model: model,
                 messages: [
                   {
                     role: 'system',
@@ -114,9 +115,9 @@ Response:`;
 
       const response = completion.choices[0].message.content.trim();
       logger.info(
-        `[AI] Generated response for business ${businessId}: ${response.length} characters`
+        `[AI][${requestId}] Generated response for business ${businessId}: ${response.length} characters`
       );
-      logger.debug(`[AI] Response preview: "${response.substring(0, 100)}..."`);
+      logger.debug(`[AI][${requestId}] Response preview: "${response.substring(0, 100)}..."`);
 
       // Cache the response
       cache.cacheResponse(businessId, query, response);
